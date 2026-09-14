@@ -1,0 +1,5 @@
+Installing extensions...
+(node:40796) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+read ECONNRESET
+Failed Installing Extensions: ms-vscode-remote.remote-wsl
