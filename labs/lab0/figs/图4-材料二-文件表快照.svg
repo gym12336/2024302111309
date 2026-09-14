@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 1128" width="1300" height="1128">
+<style>
+ .t{font-family:"Microsoft YaHei","Noto Sans CJK SC","PingFang SC",sans-serif;fill:#1f2933}
+ .m{font-family:Consolas,"DejaVu Sans Mono",monospace;fill:#1f2933}
+ .ti{font-size:20px;font-weight:700}
+ .sub{font-size:12.5px;fill:#6b7280}
+ .h{font-size:15px;font-weight:700;fill:#111827}
+ .h2{font-size:13px;font-weight:700}
+ .bx{font-size:12px;font-weight:700}
+ .ix{font-size:11px}
+ .dt{font-size:11px;fill:#4b5563}
+ .cn{font-size:10.5px;fill:#6b7280}
+</style>
+<defs>
+ <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+ <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+ <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker>
+</defs>
+<rect width="1300" height="1128" fill="#fff"/>
+
+<text class="t ti" x="24" y="34">图 4（材料二·快照三）　文件表快照 —— stdout 的完整引用链与 ref = 9 账本</text>
+<text class="t sub" x="24" y="55">截面：exec 完成、echo 首条用户指令未执行　·　9 个 fd 全部指向同一个 struct file　·　file → inode → devsw 三层</text>
+
+<!-- ================= A：三层引用链 ================= -->
+<text class="t h" x="24" y="86">A　三层引用链：从 9 个文件描述符汇聚到一个 UART 驱动函数</text>
+
+<!-- 三个进程的 ofile -->
+<g>
+ <rect x="24" y="104" width="176" height="150" rx="4" fill="#f3e8ff" stroke="#9333ea" stroke-width="1.5"/>
+ <text class="t bx" x="112" y="124" text-anchor="middle" fill="#6b21a8">proc[0]　init　pid 1</text>
+ <rect x="36" y="132" width="152" height="22" fill="#fff" stroke="#c084fc" stroke-width="1"/>
+ <text class="m ix" x="44" y="147">ofile[0]  stdin</text>
+ <rect x="36" y="154" width="152" height="22" fill="#fff" stroke="#c084fc" stroke-width="1"/>
+ <text class="m ix" x="44" y="169">ofile[1]  stdout</text>
+ <rect x="36" y="176" width="152" height="22" fill="#fff" stroke="#c084fc" stroke-width="1"/>
+ <text class="m ix" x="44" y="191">ofile[2]  stderr</text>
+ <rect x="36" y="198" width="152" height="24" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+ <text class="m cn" x="44" y="214">ofile[3..15] = 0</text>
+ <text class="t cn" x="112" y="240" text-anchor="middle">open + dup + dup</text>
+</g>
+<g>
+ <rect x="24" y="272" width="176" height="150" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+ <text class="t bx" x="112" y="292" text-anchor="middle" fill="#1e40af">proc[1]　sh　pid 2</text>
+ <rect x="36" y="300" width="152" height="22" fill="#fff" stroke="#93c5fd" stroke-width="1"/>
+ <text class="m ix" x="44" y="315">ofile[0]  stdin</text>
+ <rect x="36" y="322" width="152" height="22" fill="#fff" stroke="#93c5fd" stroke-width="1"/>
+ <text class="m ix" x="44" y="337">ofile[1]  stdout</text>
+ <rect x="36" y="344" width="152" height="22" fill="#fff" stroke="#93c5fd" stroke-width="1"/>
+ <text class="m ix" x="44" y="359">ofile[2]  stderr</text>
+ <rect x="36" y="366" width="152" height="24" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+ <text class="m cn" x="44" y="382">ofile[3..15] = 0</text>
+ <text class="t cn" x="112" y="408" text-anchor="middle">从 init fork 继承</text>
+</g>
+<g>
+ <rect x="24" y="440" width="176" height="150" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2.2"/>
+ <text class="t bx" x="112" y="460" text-anchor="middle" fill="#166534">proc[2]　echo　pid 3</text>
+ <rect x="36" y="468" width="152" height="22" fill="#fff" stroke="#86efac" stroke-width="1"/>
+ <text class="m ix" x="44" y="483">ofile[0]  stdin</text>
+ <rect x="36" y="490" width="152" height="22" fill="#fff" stroke="#4ade80" stroke-width="1.8"/>
+ <text class="m ix" x="44" y="505" font-weight="700">ofile[1]  stdout ★</text>
+ <rect x="36" y="512" width="152" height="22" fill="#fff" stroke="#86efac" stroke-width="1"/>
+ <text class="m ix" x="44" y="527">ofile[2]  stderr</text>
+ <rect x="36" y="534" width="152" height="24" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+ <text class="m cn" x="44" y="550">ofile[3..15] = 0</text>
+ <text class="t cn" x="112" y="576" text-anchor="middle">从 sh fork 继承，exec 未动</text>
+</g>
+
+<!-- 汇聚箭头 -->
+<g stroke="#c2410c" stroke-width="1.4" fill="none">
+ <path d="M200,143 C260,143 270,320 336,320"/>
+ <path d="M200,165 C260,165 270,325 336,325"/>
+ <path d="M200,187 C262,187 270,330 336,330"/>
+ <path d="M200,311 C270,311 280,335 336,335"/>
+ <path d="M200,333 C270,333 280,340 336,340"/>
+ <path d="M200,355 C270,355 280,345 336,345"/>
+ <path d="M200,479 C264,479 272,355 336,355"/>
+ <path d="M200,501 C264,501 272,360 336,360" stroke-width="2.4"/>
+ <path d="M200,523 C264,523 272,365 336,365"/>
+</g>
+<text class="t bx" x="248" y="252" fill="#c2410c">9 条引用</text>
+<text class="t cn" x="248" y="268" fill="#c2410c">全部指向同一处</text>
+
+<!-- struct file -->
+<rect x="340" y="252" width="264" height="182" rx="4" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+<text class="t bx" x="352" y="274">ftable.file[k]　struct file</text>
+<text class="t cn" x="352" y="289">file.c:17-20　NFILE = 100，k 运行期决定</text>
+<g stroke="#fed7aa" stroke-width="1">
+ <line x1="340" y1="296" x2="604" y2="296"/>
+ <line x1="340" y1="318" x2="604" y2="318"/><line x1="340" y1="340" x2="604" y2="340"/>
+ <line x1="340" y1="362" x2="604" y2="362"/><line x1="340" y1="384" x2="604" y2="384"/>
+ <line x1="340" y1="406" x2="604" y2="406"/>
+</g>
+<text class="m ix" x="352" y="312">type</text>
+<text class="m ix" x="452" y="312" font-weight="700" fill="#c2410c">FD_DEVICE</text>
+<text class="t cn" x="548" y="312">不是 FD_INODE</text>
+<text class="m ix" x="352" y="334">ref</text>
+<text class="m ix" x="452" y="334" font-weight="700" fill="#b91c1c">9</text>
+<text class="t cn" x="480" y="334">← 见下方账本</text>
+<text class="m ix" x="352" y="356">readable / writable</text>
+<text class="m ix" x="546" y="356">1 / 1</text>
+<text class="m ix" x="352" y="378">pipe / off</text>
+<text class="m ix" x="452" y="378">0 / 0</text>
+<text class="t cn" x="500" y="378">FD_DEVICE 不用 off</text>
+<text class="m ix" x="352" y="400">major</text>
+<text class="m ix" x="452" y="400" font-weight="700">1</text>
+<text class="t cn" x="480" y="400">CONSOLE　file.h:40</text>
+<text class="m ix" x="352" y="422">ip</text>
+<text class="m ix" x="452" y="422">→</text>
+
+<!-- struct inode -->
+<rect x="660" y="230" width="276" height="226" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+<text class="t bx" x="672" y="252">struct inode　console</text>
+<text class="t cn" x="672" y="267">由 init 用 mknod 在【运行期】创建</text>
+<g stroke="#dbeafe" stroke-width="1">
+ <line x1="660" y1="274" x2="936" y2="274"/>
+ <line x1="660" y1="296" x2="936" y2="296"/><line x1="660" y1="318" x2="936" y2="318"/>
+ <line x1="660" y1="340" x2="936" y2="340"/><line x1="660" y1="362" x2="936" y2="362"/>
+ <line x1="660" y1="384" x2="936" y2="384"/><line x1="660" y1="406" x2="936" y2="406"/>
+ <line x1="660" y1="428" x2="936" y2="428"/>
+</g>
+<text class="m ix" x="672" y="290">dev</text><text class="m ix" x="800" y="290">1　ROOTDEV</text>
+<text class="m ix" x="672" y="312">inum</text><text class="t ix" x="800" y="312" fill="#6b7280">运行期决定</text>
+<text class="m ix" x="672" y="334">ref</text><text class="m ix" x="800" y="334" font-weight="700">1</text>
+<text class="m ix" x="672" y="356">valid</text><text class="m ix" x="800" y="356">1</text>
+<text class="m ix" x="672" y="378">type</text>
+<text class="m ix" x="800" y="378" font-weight="700" fill="#1d4ed8">T_DEVICE = 3</text>
+<text class="m ix" x="672" y="400">major / minor</text><text class="m ix" x="800" y="400" font-weight="700">1 / 0</text>
+<text class="m ix" x="672" y="422">nlink / size</text><text class="m ix" x="800" y="422">1 / 0</text>
+<text class="m ix" x="672" y="444">addrs[NDIRECT+1]</text>
+<text class="t ix" x="800" y="444">全 0　设备无数据块</text>
+
+<path d="M604,422 C630,422 636,340 656,340" stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#ao)"/>
+<text class="m cn" x="608" y="392" fill="#c2410c">f-&gt;ip</text>
+
+<!-- devsw -->
+<rect x="992" y="266" width="284" height="120" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+<text class="t bx" x="1004" y="288">devsw[1]　struct devsw</text>
+<text class="t cn" x="1004" y="303">file.c:16　devsw[NDEV]，NDEV = 10</text>
+<g stroke="#dcfce7" stroke-width="1"><line x1="992" y1="310" x2="1276" y2="310"/><line x1="992" y1="340" x2="1276" y2="340"/></g>
+<text class="m ix" x="1004" y="330">read</text>
+<text class="m ix" x="1080" y="330" font-weight="700">consoleread</text>
+<text class="t cn" x="1196" y="330">console.c:201</text>
+<text class="m ix" x="1004" y="360">write</text>
+<text class="m ix" x="1080" y="360" font-weight="700" fill="#15803d">consolewrite</text>
+<text class="t cn" x="1196" y="360">console.c:202</text>
+<text class="t cn" x="1004" y="378">两个函数指针由 consoleinit() 在开机时注册</text>
+
+<path d="M936,378 L988,340" stroke="#15803d" stroke-width="2" fill="none" marker-end="url(#ag)"/>
+<text class="m cn" x="928" y="404" fill="#15803d">major=1 当下标</text>
+
+<!-- 到硬件 -->
+<rect x="992" y="410" width="284" height="82" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+<text class="t bx" x="1004" y="430" fill="#854d0e">最终落到硬件</text>
+<text class="m dt" x="1004" y="448">consolewrite → uartwrite　uart.c:80</text>
+<text class="m dt" x="1004" y="464">LSR_TX_IDLE 就绪 → WriteReg(THR, c)</text>
+<text class="m dt" x="1004" y="480">MMIO 0x10000000 → QEMU → 你的终端</text>
+<path d="M1134,386 L1134,406" stroke="#ca8a04" stroke-width="2" fill="none" marker-end="url(#a)"/>
+
+<!-- ================= B：ref = 9 账本 ================= -->
+<text class="t h" x="24" y="628">B　ref = 9 的逐笔账本 —— 每一笔都有源码位置</text>
+
+<rect x="24" y="640" width="700" height="26" fill="#334155"/>
+<text class="t h2" x="34" y="658" fill="#fff">#</text>
+<text class="t h2" x="70" y="658" fill="#fff">事件</text>
+<text class="t h2" x="440" y="658" fill="#fff">源码位置</text>
+<text class="t h2" x="626" y="658" fill="#fff">ref 变化</text>
+
+<g>
+ <rect x="24" y="666" width="700" height="24" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+ <rect x="24" y="690" width="700" height="24" fill="#fff" stroke="#e5e7eb" stroke-width="1"/>
+ <rect x="24" y="714" width="700" height="24" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
+ <rect x="24" y="738" width="700" height="24" fill="#fff" stroke="#e5e7eb" stroke-width="1"/>
+ <rect x="24" y="762" width="700" height="24" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+ <rect x="24" y="786" width="700" height="24" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+ <rect x="24" y="810" width="700" height="24" fill="#fff" stroke="#e5e7eb" stroke-width="1"/>
+ <rect x="24" y="834" width="700" height="26" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.4"/>
+</g>
+<text class="m ix" x="34" y="682">1</text>
+<text class="t ix" x="70" y="682">init：open("console", O_RDWR) → fd 0，filealloc 置 ref=1</text>
+<text class="m cn" x="440" y="682">sysfile.c:349 → file.c:37</text>
+<text class="m ix" x="626" y="682">0 → 1</text>
+
+<text class="m ix" x="34" y="706">2</text>
+<text class="t ix" x="70" y="706">init：dup(0) → fd 1（stdout 诞生）</text>
+<text class="m cn" x="440" y="706">init.c:23 → sysfile.c:64</text>
+<text class="m ix" x="626" y="706">1 → 2</text>
+
+<text class="m ix" x="34" y="730">3</text>
+<text class="t ix" x="70" y="730">init：dup(0) → fd 2（stderr）</text>
+<text class="m cn" x="440" y="730">init.c:24 → sysfile.c:64</text>
+<text class="m ix" x="626" y="730">2 → 3</text>
+
+<text class="m ix" x="34" y="754">4</text>
+<text class="t ix" x="70" y="754">init fork 出 sh：复制 ofile[0..2]，3 次 filedup</text>
+<text class="m cn" x="440" y="754">proc.c:286-287</text>
+<text class="m ix" x="626" y="754">3 → 6</text>
+
+<text class="m ix" x="34" y="778">5</text>
+<text class="t ix" x="70" y="778" fill="#991b1b">sh：open("console") 拿到 fd 3 —— 新建【另一个】struct file</text>
+<text class="m cn" x="440" y="778" fill="#991b1b">sh.c:152</text>
+<text class="m ix" x="626" y="778" fill="#991b1b">另一槽 0→1</text>
+
+<text class="m ix" x="34" y="802">6</text>
+<text class="t ix" x="70" y="802" fill="#991b1b">sh：立刻 close(fd)，那个槽归零释放 —— 净效果为零</text>
+<text class="m cn" x="440" y="802" fill="#991b1b">sh.c:154 → file.c:60</text>
+<text class="m ix" x="626" y="802" fill="#991b1b">另一槽 1→0</text>
+
+<text class="m ix" x="34" y="826">7</text>
+<text class="t ix" x="70" y="826">sh fork 出子进程：复制 ofile[0..2]，3 次 filedup</text>
+<text class="m cn" x="440" y="826">proc.c:286-287</text>
+<text class="m ix" x="626" y="826">6 → 9</text>
+
+<text class="m ix" x="34" y="851">8</text>
+<text class="t ix" x="70" y="851" font-weight="700" fill="#92400e">子进程 exec("echo") —— kexec 全文不含 ofile/filedup/fileclose</text>
+<text class="m cn" x="440" y="851" fill="#92400e">exec.c:27-150</text>
+<text class="m ix" x="626" y="851" font-weight="700" fill="#92400e">不变，仍 9</text>
+
+<!-- 账本图示 -->
+<rect x="740" y="640" width="536" height="220" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<text class="t h2" x="752" y="660">ref 的时间曲线</text>
+<g stroke="#cbd5e1" stroke-width="1"><line x1="790" y1="820" x2="1260" y2="820"/><line x1="790" y1="676" x2="790" y2="820"/></g>
+<text class="m cn" x="782" y="824" text-anchor="end">0</text>
+<text class="m cn" x="782" y="790" text-anchor="end">3</text>
+<text class="m cn" x="782" y="742" text-anchor="end">6</text>
+<text class="m cn" x="782" y="694" text-anchor="end">9</text>
+<polyline points="790,820 830,804 870,788 910,772 950,772 1010,724 1090,724 1150,724 1210,772" fill="none" stroke="#c2410c" stroke-width="2.5"/>
+<g fill="#c2410c">
+ <circle cx="830" cy="804" r="3.5"/><circle cx="870" cy="788" r="3.5"/><circle cx="910" cy="772" r="3.5"/>
+ <circle cx="1010" cy="724" r="3.5"/><circle cx="1090" cy="724" r="4.5"/><circle cx="1210" cy="772" r="3.5"/>
+</g>
+<text class="m cn" x="830" y="838" text-anchor="middle">open</text>
+<text class="m cn" x="870" y="838" text-anchor="middle">dup</text>
+<text class="m cn" x="910" y="838" text-anchor="middle">dup</text>
+<text class="m cn" x="960" y="838" text-anchor="middle">fork sh</text>
+<text class="m cn" x="1050" y="838" text-anchor="middle">fork echo</text>
+<text class="m cn" x="1120" y="838" text-anchor="middle">exec</text>
+<text class="m cn" x="1215" y="838" text-anchor="middle">echo exit</text>
+<text class="t bx" x="1090" y="712" text-anchor="middle" fill="#b91c1c">★ 截面在此　ref = 9</text>
+<text class="t dt" x="1136" y="758" fill="#c2410c">exec 一段是平的</text>
+
+<!-- ================= C：两个要点 ================= -->
+<text class="t h" x="24" y="898">C　两处关键结论</text>
+
+<rect x="24" y="910" width="620" height="98" rx="4" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+<text class="t h2" x="36" y="930" fill="#92400e">批注⑧　exec 完全不碰 ofile —— xv6 没有 close-on-exec（启发点）</text>
+<text class="t dt" x="36" y="950">kexec() 从头读到尾，没有一处 ofile / filedup / fileclose，也没有 FD_CLOEXEC。</text>
+<text class="t dt" x="36" y="968" fill="#92400e">这正是 shell 重定向能工作的原因：子进程先 close(1); open(file);，再 exec，</text>
+<text class="t dt" x="36" y="986" fill="#92400e">新镜像自然继承改好的 fd 表。echo 的 write(1,…) 能打到屏幕，靠的就是这份</text>
+<text class="t dt" x="36" y="1004" fill="#92400e">从 init 一路继承、穿过两次 fork 和一次 exec 都没被动过的表。</text>
+
+<rect x="660" y="910" width="616" height="98" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.3"/>
+<text class="t h2" x="672" y="930" fill="#1e40af">批注⑨　为什么是 FD_DEVICE，以及 console 不在磁盘里（疑问点）</text>
+<text class="m dt" x="672" y="950">sys_open 分岔（sysfile.c:357）：ip-&gt;type == T_DEVICE → f-&gt;type = FD_DEVICE，记 major。</text>
+<text class="t dt" x="672" y="968">mkfs/mkfs.c 里搜不到 console / mknod / T_DEVICE（已 grep 确认）——</text>
+<text class="t dt" x="672" y="986" fill="#1d4ed8">console 不在磁盘镜像里，每次开机由 init 用 mknod 在运行期造出来，所以 inum 不写死。</text>
+<text class="m dt" x="672" y="1004" fill="#b91c1c">filewrite 里 devsw[..].write(1, addr, n) 的第一个实参 1 = "来自用户空间"，不是 fd 1。</text>
+
+<rect x="24" y="1024" width="1252" height="80" rx="4" fill="#fef2f2" stroke="#f87171" stroke-width="1.3"/>
+<text class="t h2" x="36" y="1044" fill="#991b1b">批注⑩　账本第 5、6 步是个真实存在但净效果为零的干扰项（边界特例）—— 画快照时不能画进去，但必须知道它发生过</text>
+<text class="m dt" x="36" y="1064">// sh.c:151-156　sh 开场的这个循环，目的不是"去开一个新的 console"</text>
+<text class="m dt" x="36" y="1080">while ((fd = open("console", O_RDWR)) &gt;= 0) { if (fd &gt;= 3) { close(fd); break; } }</text>
+<text class="t dt" x="640" y="1064" fill="#991b1b">sh 从 fork 继承来的 fd 0/1/2 已占着，所以这次 open 必然返回 3 ——</text>
+<text class="t dt" x="640" y="1080" fill="#991b1b">filealloc 从 ftable 另取一槽建了第二个 struct file，随即 close(3) 退掉。循环的真正目的是【确认 0/1/2 已经开着】。</text>
+</svg>

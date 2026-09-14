@@ -1,0 +1,273 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 1180" width="1300" height="1180">
+<style>
+ .t{font-family:"Microsoft YaHei","Noto Sans CJK SC","PingFang SC",sans-serif;fill:#1f2933}
+ .m{font-family:Consolas,"DejaVu Sans Mono",monospace;fill:#1f2933}
+ .ti{font-size:20px;font-weight:700}
+ .sub{font-size:12.5px;fill:#6b7280}
+ .h{font-size:15px;font-weight:700;fill:#111827}
+ .h2{font-size:13px;font-weight:700}
+ .bx{font-size:12px;font-weight:700}
+ .ix{font-size:11px}
+ .dt{font-size:11px;fill:#4b5563}
+ .cn{font-size:10.5px;fill:#6b7280}
+ .pm{font-size:11.5px;font-weight:700}
+</style>
+<defs>
+ <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+ <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+  <rect width="7" height="7" fill="#fee2e2"/><line x1="0" y1="0" x2="0" y2="7" stroke="#f87171" stroke-width="1.5"/>
+ </pattern>
+</defs>
+<rect width="1300" height="1180" fill="#fff"/>
+
+<text class="t ti" x="24" y="34">图 3（材料二·快照二）　页表快照 —— echo 用户地址空间的完整映射树（Sv39 三级）</text>
+<text class="t sub" x="24" y="55">截面：exec 完成、首条用户指令未执行　·　6 个有效叶子 PTE　·　5 个页表页　·　PX(level,va) = (va &gt;&gt; (12+9·level)) &amp; 0x1FF</text>
+
+<!-- ================= A：树 ================= -->
+<text class="t h" x="24" y="86">A　映射树：整棵树只有两条路径</text>
+
+<!-- satp -->
+<rect x="24" y="300" width="118" height="70" rx="4" fill="#f1f5f9" stroke="#475569" stroke-width="1.6"/>
+<text class="m bx" x="83" y="322" text-anchor="middle">satp</text>
+<text class="m dt" x="83" y="338" text-anchor="middle">SATP_SV39</text>
+<text class="m dt" x="83" y="352" text-anchor="middle">| root_pa&gt;&gt;12</text>
+<text class="t cn" x="83" y="365" text-anchor="middle">riscv.h:248</text>
+
+<!-- L2 root -->
+<rect x="176" y="196" width="126" height="278" rx="4" fill="#e2e8f0" stroke="#334155" stroke-width="1.8"/>
+<text class="m bx" x="239" y="216" text-anchor="middle">L2 根页表</text>
+<text class="t cn" x="239" y="231" text-anchor="middle">512 项，2 项非零</text>
+<rect x="186" y="240" width="106" height="30" rx="3" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+<text class="m ix" x="239" y="252" text-anchor="middle">[  0]</text>
+<text class="m cn" x="239" y="264" text-anchor="middle">→ 低地址区</text>
+<text class="t cn" x="239" y="292" text-anchor="middle">[  1] … [254]</text>
+<text class="t cn" x="239" y="308" text-anchor="middle">全部无效（V=0）</text>
+<text class="t cn" x="239" y="324" text-anchor="middle">508 项空</text>
+<rect x="186" y="340" width="106" height="30" rx="3" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/>
+<text class="m ix" x="239" y="352" text-anchor="middle">[255]</text>
+<text class="m cn" x="239" y="364" text-anchor="middle">→ 高地址区</text>
+<text class="t cn" x="239" y="392" text-anchor="middle">[256] … [511]</text>
+<text class="t cn" x="239" y="408" text-anchor="middle">全部无效</text>
+<text class="t cn" x="239" y="440" text-anchor="middle">整个 512 项里</text>
+<text class="t cn" x="239" y="456" text-anchor="middle">只有 2 项在用</text>
+
+<line x1="142" y1="335" x2="172" y2="335" stroke="#475569" stroke-width="1.6" marker-end="url(#a)"/>
+
+<!-- L1 low -->
+<rect x="344" y="150" width="120" height="104" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="1.6"/>
+<text class="m bx" x="404" y="170" text-anchor="middle">L1 页表</text>
+<rect x="354" y="182" width="100" height="28" rx="3" fill="#fff" stroke="#2563eb" stroke-width="1.4"/>
+<text class="m ix" x="404" y="200" text-anchor="middle">[  0]</text>
+<text class="t cn" x="404" y="226" text-anchor="middle">其余 511 项</text>
+<text class="t cn" x="404" y="242" text-anchor="middle">全无效</text>
+<path d="M292,255 L340,205" stroke="#2563eb" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+<!-- L1 high -->
+<rect x="344" y="368" width="120" height="104" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6"/>
+<text class="m bx" x="404" y="388" text-anchor="middle">L1 页表</text>
+<rect x="354" y="400" width="100" height="28" rx="3" fill="#fff" stroke="#7c3aed" stroke-width="1.4"/>
+<text class="m ix" x="404" y="418" text-anchor="middle">[511]</text>
+<text class="t cn" x="404" y="444" text-anchor="middle">其余 511 项</text>
+<text class="t cn" x="404" y="460" text-anchor="middle">全无效</text>
+<path d="M292,355 L340,418" stroke="#7c3aed" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+<!-- L0 low -->
+<rect x="506" y="120" width="128" height="168" rx="4" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="1.6"/>
+<text class="m bx" x="570" y="140" text-anchor="middle">L0 页表</text>
+<text class="t cn" x="570" y="154" text-anchor="middle">4 项非零</text>
+<rect x="514" y="162" width="112" height="26" rx="2" fill="#fff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="m ix" x="570" y="179" text-anchor="middle">[  0]</text>
+<rect x="514" y="190" width="112" height="26" rx="2" fill="#fff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="m ix" x="570" y="207" text-anchor="middle">[  1]</text>
+<rect x="514" y="218" width="112" height="26" rx="2" fill="url(#hatch)" stroke="#dc2626" stroke-width="1.4"/>
+<text class="m ix" x="570" y="235" text-anchor="middle">[  2]</text>
+<rect x="514" y="246" width="112" height="26" rx="2" fill="#fff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="m ix" x="570" y="263" text-anchor="middle">[  3]</text>
+<text class="t cn" x="570" y="282" text-anchor="middle">[4]…[511] 全无效</text>
+<path d="M454,196 L502,196" stroke="#1d4ed8" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+<!-- L0 high -->
+<rect x="506" y="356" width="128" height="128" rx="4" fill="#ddd6fe" stroke="#6d28d9" stroke-width="1.6"/>
+<text class="m bx" x="570" y="376" text-anchor="middle">L0 页表</text>
+<text class="t cn" x="570" y="390" text-anchor="middle">2 项非零</text>
+<text class="t cn" x="570" y="412" text-anchor="middle">[0]…[509] 全无效</text>
+<rect x="514" y="420" width="112" height="26" rx="2" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+<text class="m ix" x="570" y="437" text-anchor="middle">[510]</text>
+<rect x="514" y="448" width="112" height="26" rx="2" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+<text class="m ix" x="570" y="465" text-anchor="middle">[511]</text>
+<path d="M454,414 L502,432" stroke="#6d28d9" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+<!-- 叶子：物理页 + VA + 权限 -->
+<g stroke="#94a3b8" stroke-width="1.2" fill="none">
+ <line x1="626" y1="175" x2="676" y2="175" marker-end="url(#a)"/>
+ <line x1="626" y1="203" x2="676" y2="203" marker-end="url(#a)"/>
+ <line x1="626" y1="231" x2="676" y2="231" marker-end="url(#a)"/>
+ <line x1="626" y1="259" x2="676" y2="259" marker-end="url(#a)"/>
+ <line x1="626" y1="433" x2="676" y2="433" marker-end="url(#a)"/>
+ <line x1="626" y1="461" x2="676" y2="461" marker-end="url(#a)"/>
+</g>
+
+<!-- 叶子表头 -->
+<rect x="680" y="120" width="596" height="26" fill="#334155"/>
+<text class="t h2" x="690" y="138" fill="#fff">VA 区间</text>
+<text class="t h2" x="856" y="138" fill="#fff">内容</text>
+<text class="t h2" x="1024" y="138" fill="#fff">权限位</text>
+<text class="t h2" x="1150" y="138" fill="#fff">十六进制</text>
+<text class="t h2" x="1222" y="138" fill="#fff">物理页</text>
+
+<!-- 叶子行 -->
+<rect x="680" y="162" width="596" height="26" fill="#fef9c3" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m ix" x="690" y="179">0x0000 – 0x0fff</text>
+<text class="t ix" x="856" y="179">.text + .rodata</text>
+<text class="m pm" x="1024" y="179" fill="#166534">V R X U</text>
+<text class="m ix" x="1150" y="179">0x1b</text>
+<text class="t cn" x="1222" y="179">运行期</text>
+
+<rect x="680" y="190" width="596" height="26" fill="#fef9c3" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m ix" x="690" y="207">0x1000 – 0x1fff</text>
+<text class="t ix" x="856" y="207">.data + .bss</text>
+<text class="m pm" x="1024" y="207" fill="#166534">V R W U</text>
+<text class="m ix" x="1150" y="207">0x17</text>
+<text class="t cn" x="1222" y="207">运行期</text>
+
+<rect x="680" y="218" width="596" height="26" fill="url(#hatch)" stroke="#dc2626" stroke-width="1.4"/>
+<text class="m ix" x="690" y="235" font-weight="700">0x2000 – 0x2fff</text>
+<text class="t ix" x="856" y="235" font-weight="700" fill="#991b1b">用户栈 guard page</text>
+<text class="m pm" x="1024" y="235" fill="#991b1b">V R W ―</text>
+<text class="m ix" x="1150" y="235" font-weight="700">0x07</text>
+<text class="t cn" x="1222" y="235" fill="#991b1b">已分配!</text>
+
+<rect x="680" y="246" width="596" height="26" fill="#fed7aa" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m ix" x="690" y="263">0x3000 – 0x3fff</text>
+<text class="t ix" x="856" y="263">用户栈（USERSTACK=1）</text>
+<text class="m pm" x="1024" y="263" fill="#166534">V R W U</text>
+<text class="m ix" x="1150" y="263">0x17</text>
+<text class="t cn" x="1222" y="263">运行期</text>
+
+<!-- 空洞 -->
+<rect x="680" y="282" width="596" height="46" rx="3" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="5 4"/>
+<text class="m ix" x="690" y="300">0x4000 – 0x3f_ffff_dfff</text>
+<text class="t ix" x="856" y="300" fill="#6b7280">完全未映射的巨大空洞</text>
+<text class="t cn" x="1024" y="300">—</text>
+<text class="t cn" x="1150" y="300">—</text>
+<text class="t dt" x="690" y="319">sz = 0x4000 到此为止。堆区【此刻不存在】—— echo 从不调 sbrk。将来 sbrk 会从 0x4000 往上铺堆页。</text>
+
+<rect x="680" y="420" width="596" height="26" fill="#ede9fe" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m ix" x="690" y="437">0x3f_ffff_e000 – …efff</text>
+<text class="t ix" x="856" y="437">trapframe</text>
+<text class="m pm" x="1024" y="437" fill="#6b21a8">V R W ―</text>
+<text class="m ix" x="1150" y="437">0x07</text>
+<text class="m cn" x="1222" y="437">p-&gt;trapframe</text>
+
+<rect x="680" y="448" width="596" height="26" fill="#d1fae5" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m ix" x="690" y="465">0x3f_ffff_f000 – …ffff</text>
+<text class="t ix" x="856" y="465">trampoline</text>
+<text class="m pm" x="1024" y="465" fill="#166534">V R X ―</text>
+<text class="m ix" x="1150" y="465">0x0b</text>
+<text class="t cn" x="1222" y="465">与内核共享</text>
+
+<!-- 页表页开销 -->
+<rect x="680" y="486" width="596" height="30" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+<text class="t dt" x="690" y="505">开销账：数据页 5 个（4 个用户页 + 1 个 trapframe）＋ 页表页 5 个（1×L2 + 2×L1 + 2×L0）。trampoline 是全系统共享，不计入。</text>
+
+<!-- ================= B：权限位来源 ================= -->
+<text class="t h" x="24" y="558">B　权限位不是照抄 ELF —— R 和 U 是内核硬加的</text>
+
+<rect x="24" y="570" width="620" height="188" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<text class="m dt" x="36" y="590">// exec.c:13-22　只翻译 X 和 W，ELF 的 R 位根本不看</text>
+<text class="m dt" x="36" y="606">int flags2perm(int flags) {</text>
+<text class="m dt" x="52" y="622">int perm = 0;</text>
+<text class="m dt" x="52" y="638">if (flags &amp; 0x1) perm  = PTE_X;　　// ELF PF_X</text>
+<text class="m dt" x="52" y="654">if (flags &amp; 0x2) perm |= PTE_W;　　// ELF PF_W</text>
+<text class="m dt" x="52" y="670">return perm;　　　　　　　　　　　　// PF_R(0x4) 被忽略</text>
+<text class="m dt" x="36" y="686">}</text>
+<line x1="36" y1="696" x2="632" y2="696" stroke="#e5e7eb" stroke-width="1"/>
+<text class="m dt" x="36" y="714">// vm.c:234　PTE_R 和 PTE_U 在这里无条件加上</text>
+<text class="m dt" x="36" y="730">mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R | PTE_U | xperm);</text>
+<text class="t dt" x="36" y="750" fill="#b91c1c">所以代码段的 R 不是因为 ELF 写了 R，而是 uvmalloc 硬塞的。</text>
+
+<!-- 推导表 -->
+<rect x="660" y="570" width="616" height="188" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1"/>
+<rect x="660" y="570" width="616" height="26" fill="#475569"/>
+<text class="t h2" x="670" y="588" fill="#fff">段</text>
+<text class="t h2" x="754" y="588" fill="#fff">ELF flags</text>
+<text class="t h2" x="866" y="588" fill="#fff">flags2perm 产出</text>
+<text class="t h2" x="1010" y="588" fill="#fff">＋ R|U</text>
+<text class="t h2" x="1130" y="588" fill="#fff">最终 PTE</text>
+<g stroke="#e5e7eb" stroke-width="1"><line x1="660" y1="622" x2="1276" y2="622"/><line x1="660" y1="648" x2="1276" y2="648"/><line x1="660" y1="674" x2="1276" y2="674"/></g>
+<text class="t ix" x="670" y="614">LOAD1 代码</text>
+<text class="m ix" x="754" y="614">0x5　R+X</text>
+<text class="m ix" x="866" y="614">PTE_X</text>
+<text class="m ix" x="1010" y="614">R|U|X</text>
+<text class="m ix" x="1130" y="614" font-weight="700">0x1b　无 W</text>
+<text class="t ix" x="670" y="640">LOAD2 数据</text>
+<text class="m ix" x="754" y="640">0x6　R+W</text>
+<text class="m ix" x="866" y="640">PTE_W</text>
+<text class="m ix" x="1010" y="640">R|U|W</text>
+<text class="m ix" x="1130" y="640" font-weight="700">0x17　无 X</text>
+<text class="t ix" x="670" y="666">用户栈</text>
+<text class="t ix" x="754" y="666">—（非 ELF 段）</text>
+<text class="m ix" x="866" y="666">exec.c:91 传 PTE_W</text>
+<text class="m ix" x="1010" y="666">R|U|W</text>
+<text class="m ix" x="1130" y="666" font-weight="700">0x17</text>
+<text class="t ix" x="670" y="692">guard</text>
+<text class="t ix" x="754" y="692">—</text>
+<text class="m ix" x="866" y="692">同上，然后 uvmclear</text>
+<text class="m ix" x="1010" y="692">清掉 U</text>
+<text class="m ix" x="1130" y="692" font-weight="700" fill="#991b1b">0x07</text>
+<text class="m dt" x="670" y="718">PTE 位定义　riscv.h:395-399　V=1&lt;&lt;0　R=1&lt;&lt;1　W=1&lt;&lt;2　X=1&lt;&lt;3　U=1&lt;&lt;4</text>
+<text class="t dt" x="670" y="738" fill="#b91c1c">trapframe 和 guard 的权限位字面上完全相同（都是 0x07），语义相反 ——</text>
+<text class="t dt" x="670" y="752" fill="#b91c1c">前者是"内核要用、用户不许碰"，后者是"谁都不该碰"。只能靠 VA 位置区分。</text>
+
+<!-- ================= C：guard page 真相 ================= -->
+<text class="t h" x="24" y="798">C　批注⑤　用户栈 guard 是"看得见摸不着"，不是空洞（边界特例）</text>
+
+<rect x="24" y="810" width="620" height="150" rx="4" fill="#fef2f2" stroke="#f87171" stroke-width="1.3"/>
+<text class="m dt" x="36" y="830">// vm.c:331-338　整个函数只做一件事</text>
+<text class="m dt" x="36" y="846">void uvmclear(pagetable_t pagetable, uint64 va) {</text>
+<text class="m dt" x="52" y="862">pte_t *pte = walk(pagetable, va, 0);</text>
+<text class="m dt" x="52" y="878">if (pte == 0) panic("uvmclear");</text>
+<text class="m dt" x="52" y="894" font-weight="700" fill="#991b1b">*pte &amp;= ~PTE_U;　　← 只清 U，V / R / W 全都留着</text>
+<text class="m dt" x="36" y="910">}</text>
+<text class="t dt" x="36" y="932" fill="#991b1b">exec.c:91 的 uvmalloc 真的 kalloc 了一页物理内存给它，白占 4KB。</text>
+<text class="t dt" x="36" y="950" fill="#991b1b">栈溢出访问 0x2000 → PTE 有效但 U=0 → 权限异常（scause=15），不是缺页。</text>
+
+<rect x="660" y="810" width="616" height="150" rx="4" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.3"/>
+<text class="t h2" x="672" y="830" fill="#92400e">批注⑥　为什么懒分配的 vmfault 救不了栈溢出（疑问点）</text>
+<text class="m dt" x="672" y="850">// vm.c:459-478</text>
+<text class="m dt" x="672" y="866">if (va &gt;= psz) return 0;　　　　　// 0x2000 &lt; sz=0x4000，这关过了</text>
+<text class="m dt" x="672" y="882">va = PGROUNDDOWN(va);</text>
+<text class="m dt" x="672" y="898" font-weight="700" fill="#92400e">if (ismapped(pagetable, va)) return 0;　← 在这里被拒绝！</text>
+<text class="t dt" x="672" y="920" fill="#92400e">guard 页的 PTE 是【有效】的，ismapped 返回真，vmfault 直接放弃。</text>
+<text class="t dt" x="672" y="940" fill="#b91c1c">结论反直觉：guard page 能拦住溢出，恰恰是因为它"已映射"。</text>
+<text class="t dt" x="672" y="956" fill="#92400e">若它是空洞，vmfault 反而会热心地补一页，溢出就悄悄成功了。</text>
+
+<!-- ================= D：索引 + 布局反常识 ================= -->
+<text class="t h" x="24" y="1000">D　三级索引复算　·　以及 xv6 用户空间布局的反常识之处</text>
+
+<rect x="24" y="1012" width="440" height="152" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<rect x="24" y="1012" width="440" height="24" fill="#475569"/>
+<text class="t h2" x="36" y="1029" fill="#fff">VA</text>
+<text class="t h2" x="230" y="1029" fill="#fff">L2</text>
+<text class="t h2" x="300" y="1029" fill="#fff">L1</text>
+<text class="t h2" x="370" y="1029" fill="#fff">L0</text>
+<g stroke="#e5e7eb" stroke-width="1">
+ <line x1="24" y1="1058" x2="464" y2="1058"/><line x1="24" y1="1080" x2="464" y2="1080"/>
+ <line x1="24" y1="1102" x2="464" y2="1102"/><line x1="24" y1="1124" x2="464" y2="1124"/>
+</g>
+<text class="m ix" x="36" y="1052">0x0000</text><text class="m ix" x="230" y="1052">0</text><text class="m ix" x="300" y="1052">0</text><text class="m ix" x="370" y="1052">0</text>
+<text class="m ix" x="36" y="1074">0x1000</text><text class="m ix" x="230" y="1074">0</text><text class="m ix" x="300" y="1074">0</text><text class="m ix" x="370" y="1074">1</text>
+<text class="m ix" x="36" y="1096">0x2000</text><text class="m ix" x="230" y="1096">0</text><text class="m ix" x="300" y="1096">0</text><text class="m ix" x="370" y="1096">2</text>
+<text class="m ix" x="36" y="1118">0x3000</text><text class="m ix" x="230" y="1118">0</text><text class="m ix" x="300" y="1118">0</text><text class="m ix" x="370" y="1118">3</text>
+<text class="m ix" x="36" y="1140">0x3f_ffff_e000</text><text class="m ix" x="230" y="1140">255</text><text class="m ix" x="300" y="1140">511</text><text class="m ix" x="370" y="1140">510</text>
+<text class="m ix" x="36" y="1158">0x3f_ffff_f000</text><text class="m ix" x="230" y="1158">255</text><text class="m ix" x="300" y="1158">511</text><text class="m ix" x="370" y="1158">511</text>
+
+<rect x="480" y="1012" width="796" height="152" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+<text class="t h2" x="492" y="1032" fill="#1e40af">批注⑦　堆在栈的【上面】，而且栈永不增长 —— 照抄经典教材图必错（启发点）</text>
+<text class="t dt" x="492" y="1054">经典图：栈在高地址往下长，堆在低地址往上长，两者相向对撞。</text>
+<text class="t dt" x="492" y="1074" fill="#1d4ed8">xv6 实际：USERSTACK=1（param.h:14）把用户栈写死成 1 页，上界 0x4000 永远不动；</text>
+<text class="m dt" x="504" y="1092" fill="#1d4ed8">sbrk → growproc（proc.c:236）只会从 0x4000 往【高处】铺堆页。</text>
+<text class="t dt" x="492" y="1112">所以顺序是：代码 → 数据 → guard → 固定 1 页栈 → 堆 → …… → trapframe → trampoline。</text>
+<text class="t dt" x="492" y="1132" fill="#b91c1c">附带后果：echo 的 main 恰好落在 VA 0x0（entry 0x7c 是 ulib.c 的 start）——</text>
+<text class="t dt" x="504" y="1150" fill="#b91c1c">空指针地址上有真代码，xv6 里解引用 NULL 不一定崩。</text>
+</svg>
