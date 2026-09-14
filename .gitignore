@@ -1,0 +1,23 @@
+# 构建产物
+kernel/*.o
+kernel/kernel
+kernel/*.asm
+*.o
+*.d
+
+# 调试日志(体积大且可重新生成)
+*.log
+int.log
+trace.log
+kernel.asm
+
+# 归档包
+提交-lab*.zip
+lab*-*.zip
+
+# 编辑器/系统
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
