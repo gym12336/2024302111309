@@ -1,339 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1340 1500" width="1340" height="1500">
-<style>
- .t{font-family:"Microsoft YaHei","Noto Sans CJK SC","PingFang SC",sans-serif;fill:#1f2933}
- .m{font-family:Consolas,"DejaVu Sans Mono",monospace;fill:#1f2933}
- .ti{font-size:20px;font-weight:700}
- .sub{font-size:12.5px;fill:#6b7280}
- .h{font-size:15px;font-weight:700;fill:#111827}
- .h2{font-size:13px;font-weight:700}
- .bx{font-size:12px;font-weight:700}
- .ix{font-size:11px}
- .dt{font-size:11px;fill:#4b5563}
- .cn{font-size:10.5px;fill:#6b7280}
- .an{font-size:11px;fill:#7c2d12}
-</style>
-<defs>
- <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
- <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b91c1c"/></marker>
- <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#15803d"/></marker>
- <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
-</defs>
-<rect width="1340" height="1500" fill="#fff"/>
-
-<text class="t ti" x="24" y="34">图 5（材料三）　一次时钟中断的微观旅程　scause = 0x8000000000000005</text>
-<text class="t sub" x="24" y="55">被中断进程：proc[2] = echo，pid 3　·　单核 -smp 1　·　覆盖：寄存器现场保护 → 调度器交接 → sret 恢复</text>
-
-<!-- ============ 0. scause 拆解 + Sstc 路径 ============ -->
-<rect x="24" y="70" width="640" height="140" rx="5" fill="#f8fafc" stroke="#475569" stroke-width="1.4"/>
-<text class="t h" x="36" y="92">0-A　scause 拆解</text>
-<rect x="36" y="102" width="330" height="30" rx="3" fill="#fff" stroke="#334155" stroke-width="1.4"/>
-<text class="m bx" x="46" y="122">0x8000000000000005</text>
-<path d="M60,132 L60,146 L120,146" stroke="#b91c1c" stroke-width="1.4" fill="none" marker-end="url(#ar)"/>
-<text class="m dt" x="126" y="150" fill="#b91c1c">最高位 = 1　→　这是【中断】不是异常</text>
-<path d="M300,132 L300,166 L120,166" stroke="#b91c1c" stroke-width="1.4" fill="none" marker-end="url(#ar)"/>
-<text class="m dt" x="126" y="170" fill="#b91c1c">低 63 位 = 5　→　S 态【时钟】中断</text>
-<text class="t dt" x="36" y="192">同族：…09 = S 态外部中断（PLIC，UART/virtio）　|　8 = ecall 系统调用　|　13 / 15 = load / store 缺页</text>
-
-<rect x="676" y="70" width="640" height="140" rx="5" fill="#fef2f2" stroke="#dc2626" stroke-width="1.6"/>
-<text class="t h" x="688" y="92" fill="#991b1b">0-B　批注①　本树用 Sstc 扩展，时钟中断直入 S 态 —— 网上流传的图会画错</text>
-<rect x="688" y="102" width="616" height="30" rx="3" fill="#fff" stroke="#f87171" stroke-width="1.2" stroke-dasharray="4 3"/>
-<text class="t ix" x="698" y="121" fill="#991b1b">✗ 经典路径（本树【不存在】）：时钟 → M 态 → timervec → 操作 CLINT 的 mtimecmp → 塞 sip 软件中断 → S 态收</text>
-<rect x="688" y="136" width="616" height="30" rx="3" fill="#dcfce7" stroke="#16a34a" stroke-width="1.4"/>
-<text class="t ix" x="698" y="155" fill="#166534">✓ 本树实际：time ≥ stimecmp → 【直接】陷入 S 态 → uservec → usertrap → devintr → clockintr 自己续约</text>
-<text class="m dt" x="688" y="182">证据：全树 grep 无 timervec、无 w_mtvec、CLINT 宏无使用者；stimecmp/menvcfg 用裸 CSR 号 0x14d / 0x30a 硬编码</text>
-<text class="t dt" x="688" y="200" fill="#991b1b">副作用：清中断与预约下一次是【同一个动作】。忘写 w_stimecmp 不是"下次不来"，而是中断立刻无限重入。</text>
-
-<!-- ============ 1. 十四步主表 ============ -->
-<text class="t h" x="24" y="240">A　十四步全程　·　每步标注特权级 / 栈 / 页表 / 持锁</text>
-
-<rect x="24" y="252" width="1292" height="28" fill="#334155"/>
-<text class="t h2" x="34" y="271" fill="#fff">#</text>
-<text class="t h2" x="72" y="271" fill="#fff">执行体</text>
-<text class="t h2" x="186" y="271" fill="#fff">动作</text>
-<text class="t h2" x="726" y="271" fill="#fff">特权级</text>
-<text class="t h2" x="810" y="271" fill="#fff">栈</text>
-<text class="t h2" x="960" y="271" fill="#fff">页表</text>
-<text class="t h2" x="1050" y="271" fill="#fff">持自旋锁</text>
-<text class="t h2" x="1178" y="271" fill="#fff">源码</text>
-
-<!-- 硬件 3 步 -->
-<rect x="24" y="280" width="1292" height="76" fill="#fef9c3" stroke="#eab308" stroke-width="1.2"/>
-<text class="m bx" x="34" y="300">①</text>
-<text class="t ix" x="72" y="300" font-weight="700">硬件</text>
-<text class="t ix" x="186" y="300">time ≥ stimecmp，硬件抬起 STIP（S 态时钟中断挂起位）</text>
-<text class="m ix" x="726" y="300">U</text>
-<text class="t ix" x="810" y="300">用户栈 0x3fc0</text>
-<text class="t ix" x="960" y="300">用户表</text>
-<text class="t ix" x="1050" y="300">无</text>
-<text class="m cn" x="1178" y="300">CSR 0x14d</text>
-<text class="m bx" x="34" y="320">②</text>
-<text class="t ix" x="186" y="320">检查 sie.STIE = 1 且 sstatus.SIE = 1 → 允许投递（缺一个就只挂着不投）</text>
-<text class="m ix" x="726" y="320">U</text>
-<text class="t ix" x="810" y="320">用户栈</text>
-<text class="t ix" x="960" y="320">用户表</text>
-<text class="t ix" x="1050" y="320">无</text>
-<text class="m cn" x="1178" y="320">start.c:33</text>
-<text class="m bx" x="34" y="340">③</text>
-<text class="t ix" x="186" y="340" font-weight="700">硬件自动（一条指令内）：scause ← 0x…05，sepc ← 被打断的用户 PC，</text>
-<text class="m ix" x="726" y="340" font-weight="700" fill="#b91c1c">U → S</text>
-<text class="t ix" x="810" y="340">用户栈</text>
-<text class="t ix" x="960" y="340">用户表</text>
-<text class="t ix" x="1050" y="340">无</text>
-<text class="m cn" x="1178" y="340">特权规范</text>
-<text class="t ix" x="202" y="352" font-weight="700">sstatus.SPP ← 0（记录来自 U 态），SIE ← 0（自动关中断），PC ← stvec</text>
-
-<!-- uservec 4 步 -->
-<rect x="24" y="356" width="1292" height="96" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.4"/>
-<text class="m bx" x="34" y="376">④</text>
-<text class="t ix" x="72" y="376" font-weight="700">uservec</text>
-<text class="t cn" x="72" y="390">trampoline.S</text>
-<text class="m ix" x="186" y="376">csrw sscratch, a0　→　li a0, TRAPFRAME　　借出 a0 当基址寄存器</text>
-<text class="m ix" x="726" y="376">S</text>
-<text class="t ix" x="810" y="376">用户栈</text>
-<text class="t ix" x="960" y="376">用户表</text>
-<text class="t ix" x="1050" y="376">无</text>
-<text class="m cn" x="1178" y="376">:32-37</text>
-<text class="m bx" x="34" y="396">⑤</text>
-<text class="t ix" x="186" y="396" font-weight="700" fill="#075985">★寄存器现场保护：34 个用户寄存器 → TRAPFRAME（ra@40 sp@48 a0@112 … t6@280）</text>
-<text class="m ix" x="726" y="396">S</text>
-<text class="t ix" x="810" y="396">用户栈</text>
-<text class="t ix" x="960" y="396">用户表</text>
-<text class="t ix" x="1050" y="396">无</text>
-<text class="m cn" x="1178" y="396">:40-73</text>
-<text class="m bx" x="34" y="416">⑥</text>
-<text class="m ix" x="186" y="416" font-weight="700">ld sp, 8(a0)　← 从 kernel_sp 装载　★换栈的确切指令</text>
-<text class="m ix" x="726" y="416">S</text>
-<text class="m ix" x="810" y="416" font-weight="700" fill="#0369a1">→内核栈 0x3fffffa000</text>
-<text class="t ix" x="960" y="416">用户表</text>
-<text class="t ix" x="1050" y="416">无</text>
-<text class="m cn" x="1178" y="416">:76</text>
-<text class="m bx" x="34" y="436">⑦</text>
-<text class="m ix" x="186" y="436" font-weight="700">sfence.vma → csrw satp, kernel_satp → sfence.vma　★三条指令必须严格按序</text>
-<text class="m ix" x="726" y="436">S</text>
-<text class="t ix" x="810" y="436">内核栈</text>
-<text class="m ix" x="960" y="436" font-weight="700" fill="#0369a1">→内核表</text>
-<text class="t ix" x="1050" y="436">无</text>
-<text class="m cn" x="1178" y="436">:89-95</text>
-
-<!-- usertrap 3 步 -->
-<rect x="24" y="452" width="1292" height="76" fill="#dcfce7" stroke="#16a34a" stroke-width="1.4"/>
-<text class="m bx" x="34" y="472">⑧</text>
-<text class="t ix" x="72" y="472" font-weight="700">usertrap</text>
-<text class="t cn" x="72" y="486">trap.c:37</text>
-<text class="m ix" x="186" y="472">w_stvec(kernelvec)　此后陷入去 kerneltrap，不再去 uservec</text>
-<text class="m ix" x="726" y="472">S</text>
-<text class="t ix" x="810" y="472">内核栈</text>
-<text class="t ix" x="960" y="472">内核表</text>
-<text class="t ix" x="1050" y="472">无</text>
-<text class="m cn" x="1178" y="472">:47</text>
-<text class="m bx" x="34" y="492">⑨</text>
-<text class="m ix" x="186" y="492">p-&gt;trapframe-&gt;epc = r_sepc()　　★此处【不做】epc += 4（见批注③）</text>
-<text class="m ix" x="726" y="492">S</text>
-<text class="t ix" x="810" y="492">内核栈</text>
-<text class="t ix" x="960" y="492">内核表</text>
-<text class="t ix" x="1050" y="492">无</text>
-<text class="m cn" x="1178" y="492">:52</text>
-<text class="m bx" x="34" y="512">⑩</text>
-<text class="m ix" x="186" y="512">devintr()　匹配 scause == 0x…05 → 调 clockintr() → 返回 2</text>
-<text class="m ix" x="726" y="512">S</text>
-<text class="t ix" x="810" y="512">内核栈</text>
-<text class="t ix" x="960" y="512">内核表</text>
-<text class="t ix" x="1050" y="512">无</text>
-<text class="m cn" x="1178" y="512">:213-216</text>
-
-<!-- clockintr -->
-<rect x="24" y="528" width="1292" height="56" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.4"/>
-<text class="m bx" x="34" y="548">⑪</text>
-<text class="t ix" x="72" y="548" font-weight="700">clockintr</text>
-<text class="t cn" x="72" y="562">trap.c:166</text>
-<text class="m ix" x="186" y="548">if (cpuid()==0) { acquire(&amp;tickslock); ticks++; wakeup(&amp;ticks); release; }</text>
-<text class="m ix" x="726" y="548">S</text>
-<text class="t ix" x="810" y="548">内核栈</text>
-<text class="t ix" x="960" y="548">内核表</text>
-<text class="m ix" x="1050" y="548" font-weight="700" fill="#b45309">tickslock（短暂）</text>
-<text class="m cn" x="1178" y="548">:169-173</text>
-<text class="m ix" x="186" y="568" font-weight="700">w_stimecmp(r_time() + 1000000)　← 在 if 之外！每核各自续约；既预约也清中断</text>
-<text class="m ix" x="1050" y="568">已释放</text>
-<text class="m cn" x="1178" y="568">:179</text>
-
-<!-- yield -->
-<rect x="24" y="584" width="1292" height="76" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6"/>
-<text class="m bx" x="34" y="604">⑫</text>
-<text class="t ix" x="72" y="604" font-weight="700">yield</text>
-<text class="t cn" x="72" y="618">proc.c:499</text>
-<text class="t ix" x="186" y="604" font-weight="700" fill="#5b21b6">★调度器交接（一）　usertrap 见 which_dev == 2 才调 yield —— 全树唯一抢占触发点</text>
-<text class="m ix" x="726" y="604">S</text>
-<text class="t ix" x="810" y="604">内核栈</text>
-<text class="t ix" x="960" y="604">内核表</text>
-<text class="m ix" x="1050" y="604" font-weight="700" fill="#b45309">p-&gt;lock　noff=1</text>
-<text class="m cn" x="1178" y="604">trap.c:85</text>
-<text class="m ix" x="186" y="624">acquire(&amp;p-&gt;lock)　→　p-&gt;state = RUNNABLE　←【不是】SLEEPING（见批注④）</text>
-<text class="m ix" x="1050" y="624" font-weight="700" fill="#b45309">持锁跨越 swtch</text>
-<text class="m cn" x="1178" y="624">:501-502</text>
-<text class="m ix" x="186" y="644">sched() 四道断言 → swtch(&amp;p-&gt;context, &amp;mycpu()-&gt;context)　★存 14 个 callee-saved</text>
-<text class="m ix" x="810" y="644" font-weight="700" fill="#6d28d9">→引导栈 stack0</text>
-<text class="t ix" x="960" y="644">内核表</text>
-<text class="m cn" x="1178" y="644">:479 / swtch.S</text>
-
-<!-- scheduler -->
-<rect x="24" y="660" width="1292" height="76" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.6"/>
-<text class="m bx" x="34" y="680">⑬</text>
-<text class="t ix" x="72" y="680" font-weight="700">scheduler</text>
-<text class="t cn" x="72" y="694">proc.c:428</text>
-<text class="t ix" x="186" y="680" font-weight="700" fill="#5b21b6">★调度器交接（二）　intr_on(); intr_off(); 然后从 proc[0] 线性扫到 proc[63]</text>
-<text class="m ix" x="726" y="680">S</text>
-<text class="t ix" x="810" y="680">引导栈</text>
-<text class="t ix" x="960" y="680">内核表</text>
-<text class="m ix" x="1050" y="680" font-weight="700" fill="#b45309">逐个 p-&gt;lock</text>
-<text class="m cn" x="1178" y="680">:441-443</text>
-<text class="t ix" x="186" y="700">朴素轮转，无优先级 / 无时间片计数 / 无队列。遇第一个 RUNNABLE 就切进去。</text>
-<text class="t ix" x="186" y="720" font-weight="700">本例：proc[0] init SLEEPING 跳过 → proc[1] sh SLEEPING 跳过 → proc[2] echo RUNNABLE【选中】</text>
-<text class="m ix" x="810" y="720" font-weight="700" fill="#6d28d9">→内核栈（回来）</text>
-<text class="m cn" x="1178" y="720">:445-453</text>
-
-<!-- 返回 -->
-<rect x="24" y="736" width="1292" height="96" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
-<text class="m bx" x="34" y="756">⑭</text>
-<text class="t ix" x="72" y="756" font-weight="700">prepare_</text>
-<text class="t ix" x="72" y="770" font-weight="700">return</text>
-<text class="t cn" x="72" y="784">trap.c:100</text>
-<text class="t ix" x="186" y="756" font-weight="700" fill="#065f46">★sret 恢复（一）　① intr_off()　② w_stvec(uservec)　※顺序不可交换，见批注⑤</text>
-<text class="m ix" x="726" y="756">S</text>
-<text class="t ix" x="810" y="756">内核栈</text>
-<text class="t ix" x="960" y="756">内核表</text>
-<text class="t ix" x="1050" y="756">已全部释放</text>
-<text class="m cn" x="1178" y="756">:108-112</text>
-<text class="m ix" x="186" y="776">③ 填 kernel_satp / kernel_sp / kernel_trap / kernel_hartid　为【下一次】陷入备料</text>
-<text class="m cn" x="1178" y="776">:116-119</text>
-<text class="m ix" x="186" y="796">④ sstatus：SPP ← 0（sret 后进 U 态），SPIE ← 1（sret 后 SIE 自动置 1）　⑤ w_sepc(epc)</text>
-<text class="m cn" x="1178" y="796">:126-131</text>
-<text class="m ix" x="186" y="816" font-weight="700">return MAKE_SATP(p-&gt;pagetable)　→ 返回值落在 a0，正好是 userret 需要的位置</text>
-<text class="m cn" x="1178" y="816">:91-94</text>
-
-<rect x="24" y="832" width="1292" height="76" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.6"/>
-<text class="t ix" x="72" y="852" font-weight="700">userret</text>
-<text class="t cn" x="72" y="866">trampoline.S</text>
-<text class="t ix" x="186" y="852" font-weight="700" fill="#075985">★sret 恢复（二）　fence.i → sfence.vma → csrw satp, a0 → sfence.vma</text>
-<text class="m ix" x="726" y="852">S</text>
-<text class="t ix" x="810" y="852">内核栈</text>
-<text class="m ix" x="960" y="852" font-weight="700" fill="#0369a1">→用户表</text>
-<text class="t ix" x="1050" y="852">无</text>
-<text class="m cn" x="1178" y="852">:107-112</text>
-<text class="m ix" x="186" y="872" font-weight="700">li a0, TRAPFRAME　← 必须在 csrw satp【之后】，见批注⑥　→ 恢复 34 个寄存器（a0 最后）</text>
-<text class="m ix" x="810" y="872" font-weight="700" fill="#0369a1">→用户栈 0x3fc0</text>
-<text class="m cn" x="1178" y="872">:114-149</text>
-<text class="m ix" x="186" y="892" font-weight="700">sret　　一条指令做三件事：SIE ← SPIE　|　SPIE ← 1　|　特权级 ← SPP</text>
-<text class="m ix" x="726" y="892" font-weight="700" fill="#15803d">S → U</text>
-<text class="t ix" x="810" y="892">用户栈</text>
-<text class="t ix" x="960" y="892">用户表</text>
-<text class="m cn" x="1178" y="892">:153</text>
-
-<!-- ============ B：三条守恒线 ============ -->
-<text class="t h" x="24" y="948">B　三条守恒线 —— 画完用它们自查，断一条就是画错了</text>
-
-<rect x="24" y="960" width="424" height="150" rx="5" fill="#fef9c3" stroke="#eab308" stroke-width="1.3"/>
-<text class="t h2" x="36" y="980" fill="#854d0e">特权级：只变【两次】</text>
-<rect x="40" y="990" width="60" height="26" rx="3" fill="#fff" stroke="#ca8a04" stroke-width="1.2"/>
-<text class="m ix" x="70" y="1007" text-anchor="middle">U</text>
-<path d="M104,1003 L146,1003" stroke="#b91c1c" stroke-width="2" fill="none" marker-end="url(#ar)"/>
-<text class="m cn" x="125" y="997" text-anchor="middle" fill="#b91c1c">③硬件</text>
-<rect x="150" y="990" width="196" height="26" rx="3" fill="#dcfce7" stroke="#16a34a" stroke-width="1.2"/>
-<text class="m ix" x="248" y="1007" text-anchor="middle">S　（④ 一直到 ⑭）</text>
-<path d="M350,1003 L392,1003" stroke="#15803d" stroke-width="2" fill="none" marker-end="url(#ag)"/>
-<text class="m cn" x="371" y="997" text-anchor="middle" fill="#15803d">sret</text>
-<rect x="396" y="990" width="44" height="26" rx="3" fill="#fff" stroke="#ca8a04" stroke-width="1.2"/>
-<text class="m ix" x="418" y="1007" text-anchor="middle">U</text>
-<text class="t dt" x="36" y="1038">中间的 yield / swtch / scheduler 全部在 S 态，一次都没变过。</text>
-<text class="t dt" x="36" y="1058" fill="#b91c1c">✗ 常见错画：把 swtch 或 scheduler 标成"特权级切换"。</text>
-<text class="t dt" x="36" y="1076" fill="#b91c1c">　 它们是【换栈】，与特权级无关。</text>
-<text class="t dt" x="36" y="1098" fill="#854d0e">M 态全程不出现 —— 本树无 M 态定时器路径（批注①）。</text>
-
-<rect x="460" y="960" width="424" height="150" rx="5" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.3"/>
-<text class="t h2" x="472" y="980" fill="#075985">栈：四次切换，两次 swtch 两次 ld sp</text>
-<text class="m ix" x="472" y="1002">用户栈 0x3fc0</text>
-<text class="m cn" x="620" y="1002" fill="#0369a1">⑥ ld sp, 8(a0)</text>
-<text class="m ix" x="488" y="1022">↓　echo 内核栈 0x3fffffa000</text>
-<text class="m cn" x="620" y="1042" fill="#6d28d9">⑫ swtch 里 ld sp, 8(a1)</text>
-<text class="m ix" x="488" y="1042">↓　引导栈 stack0 + 4096</text>
-<text class="m cn" x="620" y="1062" fill="#6d28d9">⑬ swtch 里 ld sp, 8(a1)</text>
-<text class="m ix" x="488" y="1062">↓　echo 内核栈（从 sched 中途醒来）</text>
-<text class="m cn" x="620" y="1082" fill="#0369a1">userret ld sp, 48(a0)</text>
-<text class="m ix" x="488" y="1082">↓　用户栈 0x3fc0</text>
-<text class="t dt" x="472" y="1102" fill="#075985">用户栈内容一个字节都没变 —— 时钟中断对用户程序完全透明。</text>
-
-<rect x="896" y="960" width="420" height="150" rx="5" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.3"/>
-<text class="t h2" x="908" y="980" fill="#5b21b6">页表：只有两次 csrw satp，都在 trampoline 里</text>
-<rect x="912" y="990" width="120" height="30" rx="3" fill="#fff" stroke="#7c3aed" stroke-width="1.2"/>
-<text class="t ix" x="972" y="1009" text-anchor="middle">echo 用户表</text>
-<path d="M1036,1005 L1078,1005" stroke="#7c3aed" stroke-width="2" fill="none" marker-end="url(#ap)"/>
-<text class="m cn" x="1057" y="999" text-anchor="middle" fill="#7c3aed">⑦</text>
-<rect x="1082" y="990" width="96" height="30" rx="3" fill="#fff" stroke="#7c3aed" stroke-width="1.2"/>
-<text class="t ix" x="1130" y="1009" text-anchor="middle">内核表</text>
-<path d="M1182,1005 L1224,1005" stroke="#7c3aed" stroke-width="2" fill="none" marker-end="url(#ap)"/>
-<text class="m cn" x="1203" y="999" text-anchor="middle" fill="#7c3aed">userret</text>
-<rect x="1228" y="990" width="80" height="30" rx="3" fill="#fff" stroke="#7c3aed" stroke-width="1.2"/>
-<text class="t ix" x="1268" y="1009" text-anchor="middle">用户表</text>
-<text class="t dt" x="908" y="1040">四条 sfence.vma（去程 2、回程 2）把 TLB 刷干净。</text>
-<text class="t dt" x="908" y="1060">scheduler 全程用内核表 —— 它不属于任何进程。</text>
-<text class="t dt" x="908" y="1082" fill="#b91c1c">✗ 常见错画：以为 swtch 会换页表。不会，它只动 14 个寄存器。</text>
-<text class="t dt" x="908" y="1100" fill="#5b21b6">进程切换时页表的切换发生在【返回用户态的路上】，不在 swtch 里。</text>
-
-<!-- ============ C：批注 ============ -->
-<text class="t h" x="24" y="1148">C　自主思考批注（批注① 见图左上）</text>
-
-<rect x="24" y="1160" width="424" height="110" rx="5" fill="#fff7ed" stroke="#c2410c" stroke-width="1.3"/>
-<text class="t h2" x="36" y="1180" fill="#7c2d12">批注②　sret 是"内核关中断、用户开中断"的实现者</text>
-<text class="m an" x="36" y="1200">prepare_return 设的是 SPIE，不是 SIE：</text>
-<text class="m an" x="36" y="1216">x &amp;= ~SSTATUS_SPP;　x |= SSTATUS_SPIE;</text>
-<text class="t an" x="36" y="1234">sret 执行时硬件做 SIE ← SPIE。所以内核里全程 SIE=0，</text>
-<text class="t an" x="36" y="1250">一执行 sret 才翻成 SIE=1，用户态才可被打断。</text>
-<text class="t an" x="36" y="1264" fill="#b91c1c">这个不对称靠一条指令的副作用实现，不是显式赋值。</text>
-
-<rect x="460" y="1160" width="424" height="110" rx="5" fill="#fff7ed" stroke="#c2410c" stroke-width="1.3"/>
-<text class="t h2" x="472" y="1180" fill="#7c2d12">批注③　中断不做 epc += 4，系统调用才做</text>
-<text class="m an" x="472" y="1200">if (r_scause() == 8) { … p-&gt;trapframe-&gt;epc += 4; … }</text>
-<text class="m an" x="472" y="1216">else if ((which_dev = devintr()) != 0) { /* 不加 4 */ }</text>
-<text class="t an" x="472" y="1236">ecall 已执行完，重来一遍会死循环；</text>
-<text class="t an" x="472" y="1252">被中断打断的指令【根本没执行完】，必须原地重来。</text>
-<text class="t an" x="472" y="1266" fill="#b91c1c">一句话：中断是透明的，系统调用是有进展的。</text>
-
-<rect x="896" y="1160" width="420" height="110" rx="5" fill="#fff7ed" stroke="#c2410c" stroke-width="1.3"/>
-<text class="t h2" x="908" y="1180" fill="#7c2d12">批注④　yield 设 RUNNABLE 是"抢占 vs 阻塞"的分水岭</text>
-<text class="t an" x="908" y="1202">yield：state = RUNNABLE，chan 保持 0</text>
-<text class="t an" x="908" y="1218">　→ 语义"我还想跑，只是让一让"，调度器扫到就行</text>
-<text class="t an" x="908" y="1236">sleep：state = SLEEPING，chan 设为某地址</text>
-<text class="t an" x="908" y="1252">　→ 语义"我等条件，别选我"，必须有人 wakeup 同一通道</text>
-<text class="t an" x="908" y="1266" fill="#b91c1c">本例单核只有 echo 可跑，yield 绕一圈回到自己 —— 但真的走完了。</text>
-
-<rect x="24" y="1282" width="640" height="102" rx="5" fill="#fef2f2" stroke="#dc2626" stroke-width="1.3"/>
-<text class="t h2" x="36" y="1302" fill="#991b1b">批注⑤　intr_off() 必须在 w_stvec 之前 —— 一个真实的灾难场景</text>
-<text class="t an" x="36" y="1322">w_stvec(uservec) 之后，陷入向量已指向 uservec，但 CPU 还在内核态 / 内核页表 / 内核栈上。</text>
-<text class="t an" x="36" y="1340">此时若来中断 → 硬件跳 uservec → uservec 第一件事就往 TRAPFRAME 写 34 个寄存器 →</text>
-<text class="m an" x="36" y="1358">但内核页表【没有映射 TRAPFRAME】（proc.h:33 明确说 not specially mapped）→ 内核态缺页</text>
-<text class="t an" x="36" y="1376" fill="#b91c1c">→ 缺页处理又走 stvec → 又指向 uservec → 无限递归直到栈溢出。所以这两行顺序不能交换。</text>
-
-<rect x="676" y="1282" width="640" height="102" rx="5" fill="#fef2f2" stroke="#dc2626" stroke-width="1.3"/>
-<text class="t h2" x="688" y="1302" fill="#991b1b">批注⑥　sched() 里 noff != 1 这道断言最精妙</text>
-<text class="m an" x="688" y="1322">if (!holding(&amp;p-&gt;lock)) panic("sched p-&gt;lock");　　① 必须持有自己的锁</text>
-<text class="m an" x="688" y="1340">if (mycpu()-&gt;noff != 1) panic("sched locks");　　 ② 只能持这一把</text>
-<text class="m an" x="688" y="1358">if (p-&gt;state == RUNNING) panic("sched RUNNING");　③ 状态得先改好</text>
-<text class="m an" x="688" y="1376" fill="#b91c1c">if (intr_get()) panic("sched interruptible");　　 ④ 中断必须关着　→ 持多锁切换 = 死锁</text>
-
-<!-- ============ D：对照 ============ -->
-<text class="t h" x="24" y="1420">D　同一次中断若打在内核态（对照组）</text>
-<rect x="24" y="1430" width="1292" height="26" fill="#475569"/>
-<text class="t h2" x="34" y="1448" fill="#fff">项目</text>
-<text class="t h2" x="260" y="1448" fill="#fff">打在用户态（本图主线）</text>
-<text class="t h2" x="620" y="1448" fill="#fff">打在内核态</text>
-<text class="t h2" x="960" y="1448" fill="#fff">差异根源</text>
-<rect x="24" y="1456" width="1292" height="20" fill="#f8fafc" stroke="#e5e7eb" stroke-width="1"/>
-<text class="t ix" x="34" y="1470">入口 / 保存位置 / 保存个数</text>
-<text class="m ix" x="260" y="1470">uservec　→ TRAPFRAME 固定 VA　34 个</text>
-<text class="m ix" x="620" y="1470">kernelvec　→ 当前内核栈 sp−256　18 个</text>
-<text class="t ix" x="960" y="1470">要跨页表跨特权级，全都得留</text>
-<rect x="24" y="1476" width="1292" height="20" fill="#fff" stroke="#e5e7eb" stroke-width="1"/>
-<text class="t ix" x="34" y="1490">换栈 / 换页表 / 处理函数 / 让步条件</text>
-<text class="m ix" x="260" y="1490">都换　usertrap　which_dev==2</text>
-<text class="m ix" x="620" y="1490">都不换　kerneltrap　&amp;&amp; myproc()!=0</text>
-<text class="t ix" x="960" y="1490">调度器自己不参与让步（c-&gt;proc==0）</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 1173" width="1320" height="1173">
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9 Z" fill="#66788A"/></marker></defs>
+<rect width="1320" height="1173" fill="#F7F9FA"/>
+<rect width="1320" height="78" fill="#153B45"/>
+<text x="36" y="36" fill="#FFFFFF" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="bold" text-anchor="start">材料三｜一次 S 态时钟中断的微观旅程</text>
+<text x="36" y="63" fill="#D9ECEB" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">例：单核 echo 正在 U 态运行；scause=0x8000000000000005；本树使用 stimecmp 直接触发 S 态时钟中断。</text>
+<rect x="35" y="103" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="103" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="54" y="132" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">01 触发</text>
+<rect x="232" y="103" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="103" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="251" y="132" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">time ≥ stimecmp，CPU 接受时钟中断</text>
+<text x="251" y="158" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">硬件记 sepc，写 scause=高位1+原因5，SPP=0，关 SIE。</text>
+<rect x="989" y="103" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="103" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="1008" y="132" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="158" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">U→S｜暂用 echo 用户栈</text>
+<text x="1008" y="180" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁；当前还是用户页表</text>
+<line x1="224" y1="191" x2="224" y2="203" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="204" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="204" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="233" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">02 保存</text>
+<rect x="232" y="204" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="204" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="233" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">stvec → trampoline:uservec</text>
+<text x="251" y="259" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">用户通用寄存器保存到 TRAPFRAME；还没有进入 C 代码。</text>
+<rect x="989" y="204" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="204" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="233" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="259" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜仍用原 sp</text>
+<text x="1008" y="281" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁；仍是用户页表</text>
+<line x1="224" y1="292" x2="224" y2="304" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="305" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="305" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="334" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">03 换栈表</text>
+<rect x="232" y="305" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="305" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="334" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">uservec 装 kernel_sp，切 kernel_satp</text>
+<text x="251" y="360" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">sp 改为 echo 内核栈顶；sfence.vma 后进入 usertrap。</text>
+<rect x="989" y="305" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="305" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="334" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="360" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜echo 内核栈</text>
+<text x="1008" y="382" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁；换为内核页表</text>
+<line x1="224" y1="393" x2="224" y2="405" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="406" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="406" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="435" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">04 分发</text>
+<rect x="232" y="406" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="406" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="435" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">usertrap 保存 epc；devintr 识别原因 5</text>
+<text x="251" y="461" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">改 stvec=kernelvec；时钟中断不做 epc+=4。</text>
+<rect x="989" y="406" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="406" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="435" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="461" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜echo 内核栈</text>
+<text x="1008" y="483" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁</text>
+<line x1="224" y1="494" x2="224" y2="506" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="507" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="507" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="536" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">05 时钟</text>
+<rect x="232" y="507" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="507" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="536" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">clockintr：ticks++，wakeup，续约</text>
+<text x="251" y="562" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">hart0 短暂持 tickslock；w_stimecmp(time+1000000)。</text>
+<rect x="989" y="507" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="507" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="536" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="562" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜echo 内核栈</text>
+<text x="1008" y="584" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">tickslock 随即释放</text>
+<line x1="224" y1="595" x2="224" y2="607" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="608" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="608" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="54" y="637" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">06 让步</text>
+<rect x="232" y="608" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="608" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="251" y="637" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">which_dev=2 → yield → sched</text>
+<text x="251" y="663" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">echo: RUNNING→RUNNABLE；存 context，swtch 到调度器。</text>
+<rect x="989" y="608" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="608" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="1008" y="637" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="663" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜echo 内核栈→调度器栈</text>
+<text x="1008" y="685" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">只持 echo.lock 跨 swtch</text>
+<line x1="224" y1="696" x2="224" y2="708" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="709" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="709" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="738" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">07 决策</text>
+<rect x="232" y="709" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="709" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="738" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">scheduler 扫 RUNNABLE 进程</text>
+<text x="251" y="764" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">选中某进程并 swtch；若仍选 echo，就回到 echo 的 sched。</text>
+<rect x="989" y="709" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="709" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="738" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="764" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜调度器栈→被选进程栈</text>
+<text x="1008" y="786" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">选中时持对应 proc.lock</text>
+<line x1="224" y1="797" x2="224" y2="809" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="810" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="810" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="54" y="839" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">08 恢复</text>
+<rect x="232" y="810" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="810" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="251" y="839" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">echo 重新获选：yield 返回 usertrap</text>
+<text x="251" y="865" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">释放 echo.lock；prepare_return 配好 stvec、SPP、SPIE、sepc。</text>
+<rect x="989" y="810" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="810" width="5" height="87" rx="0" fill="#087E83" stroke="#087E83" stroke-width="1.5"/>
+<text x="1008" y="839" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="865" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S｜echo 内核栈</text>
+<text x="1008" y="887" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁；内核页表</text>
+<line x1="224" y1="898" x2="224" y2="910" stroke="#66788A" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="35" y="911" width="180" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="35" y="911" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="54" y="940" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">09 返回</text>
+<rect x="232" y="911" width="740" height="87" rx="5" fill="#FFFFFF" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="232" y="911" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="251" y="940" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">trampoline:userret → sret</text>
+<text x="251" y="966" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">换回 echo 用户页表，恢复寄存器与用户 sp，sret 回原 PC。</text>
+<rect x="989" y="911" width="296" height="87" rx="5" fill="#F2F6F6" stroke="#C9D7D9" stroke-width="1.5"/>
+<rect x="989" y="911" width="5" height="87" rx="0" fill="#CF7B43" stroke="#CF7B43" stroke-width="1.5"/>
+<text x="1008" y="940" fill="#18313B" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="bold" text-anchor="start">运行状态</text>
+<text x="1008" y="966" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">S→U｜echo 用户栈</text>
+<text x="1008" y="988" fill="#405761" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">无锁；用户页表</text>
+<rect x="35" y="1022" width="1250" height="117" rx="5" fill="#FFF8E9" stroke="#DFC57A" stroke-width="1.5"/>
+<text x="51" y="1051" fill="#745413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" font-weight="bold" text-anchor="start">验收批注：为什么这样画</text>
+<text x="51" y="1075" fill="#5B5140" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">① 中断不跳过被打断的指令；只有 ecall 返回时才把 epc 加 4。</text>
+<text x="51" y="1098" fill="#5B5140" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">② 时钟中断触发 yield 抢占：状态变 RUNNABLE，不是 SLEEPING；无需 wakeup 即可再运行。</text>
+<text x="51" y="1121" fill="#5B5140" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" font-weight="normal" text-anchor="start">③ 若另一进程先被选中，echo 的现场仍留在 trapframe+内核栈，等再次调度时继续恢复。</text>
 </svg>
