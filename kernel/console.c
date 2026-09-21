@@ -1,14 +1,49 @@
-/*
- * lab1 初始骨架代码(自动生成): 系统启动与串口控制台输出。
- * 启动至此的前期初始化流程，需要由你在本实验中设计并实现。
- * 你需要实现: entry.S(start 前的 M 态准备可另置 start.c)、串口轮询输出、
- * 最小 printf。链接脚本 kernel.ld 带注释保留; 底层宏 riscv.h 完整保留。
- * 代码导读路线与设计引导问题详见《实验说明书(lab1)》。
- *
- * 两个环境注意事项(说明书 §2"环境前置条件"与附录 C, 动手前必读):
- *  1. start() 的 M→S 切换清单必须包含 PMP 配置(最简两行):
- *       w_pmpaddr0(0x3fffffffffffffull); w_pmpcfg0(0xf);
- *     否则在新版 QEMU 上 mret 进 S 态的第一条取指即触发 fault(全程无输出)。
- *  2. entry.S 里的陷阱向量标号前加 .balign 4(mtvec 要求 4 字节对齐,
- *     不满足时写入会被硬件静默丢弃)。
- */
+#include "types.h"
+#include "riscv.h"
+#include "memlayout.h"
+#include "course_sid.h"
+
+#define UART_THR 0
+#define UART_LSR 5
+#define UART_LSR_THRE (1 << 5)
+
+#define UART_REG(offset) ((volatile uint8 *)(UART0 + (offset)))
+#define LAB1_THROTTLE_PERIOD (16UL + (COURSE_SID % 16UL))
+
+static uint64 transmitted_bytes;
+
+static void
+throttle_if_needed(void)
+{
+  if (transmitted_bytes % LAB1_THROTTLE_PERIOD != 0)
+    return;
+
+  for (uint64 i = 0; i < LAB1_THROTTLE_PERIOD; i++)
+    asm volatile("nop");
+}
+
+void
+uartputc_sync(int c)
+{
+  while ((*UART_REG(UART_LSR) & UART_LSR_THRE) == 0)
+    ;
+
+  io_fence();
+  *UART_REG(UART_THR) = (uint8)c;
+  io_fence();
+
+  transmitted_bytes++;
+  throttle_if_needed();
+}
+
+void
+putchar(int c)
+{
+  uartputc_sync(c);
+
+#if LAB1_BANNER_PROTOCOL == 1
+  uartputc_sync('.');
+#elif LAB1_BANNER_PROTOCOL != 0
+#error "This lab1 implementation expects banner protocol 0 or 1"
+#endif
+}
