@@ -2,6 +2,9 @@
 kernel/*.o
 kernel/kernel
 kernel/*.asm
+kernel/userimg.S
+user/usys.S
+user-flat/
 *.o
 *.d
 
