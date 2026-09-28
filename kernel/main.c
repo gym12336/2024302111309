@@ -1,10 +1,13 @@
 #include "course_sid.h"
 
 extern void printf(const char *format, ...);
+extern void boot_vm_init(void);
 
 void
 main(void)
 {
+  boot_vm_init();
+
   printf("OSLAB1 sid=%lu mod97=0x%lx\n",
          (unsigned long)COURSE_SID,
          (unsigned long)(COURSE_SID % 97UL));

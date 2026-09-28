@@ -21,6 +21,11 @@ SECTIONS
     *(.text .text.*)
   }
 
+  /* Lab2: the immutable trampoline must occupy one executable 4 KiB page. */
+  . = ALIGN(4096);
+  .trampsec : { KEEP(*(trampsec)) }
+  . = ALIGN(4096);
+
   .rodata : {        /* 只读数据:字符串常量等 */
     *(.rodata .rodata.*)
   }
@@ -37,3 +42,5 @@ SECTIONS
   /* 内核结束符号:lab3 的 kalloc 将从这里开始分配物理页 */
   kernel_end = .;
 }
+
+ASSERT(SIZEOF(.trampsec) <= 4096, "trampoline exceeds one page")
