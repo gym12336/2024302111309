@@ -7,6 +7,7 @@
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
 static uint64 active_user_satp;
+static volatile uint64 kernel_softirq_count;
 
 // A separate stack for the first boot user task. Later processes need their own.
 static uint8 trap_stack[2 * PGSIZE] __attribute__((aligned(16)));
@@ -42,6 +43,30 @@ void
 kerneltrap_stop(void)
 {
   stop_trap("unexpected kernel trap");
+}
+
+void
+kerneltrap(void)
+{
+  uint64 epc = r_sepc();
+  uint64 status = r_sstatus();
+  uint64 cause = r_scause();
+  if (!(status & SSTATUS_SPP))
+    stop_trap("kerneltrap called from user mode");
+  if (status & SSTATUS_SIE)
+    stop_trap("kerneltrap entered with interrupts enabled");
+
+  if (cause == ((1UL << 63) | 1)) {
+    // Supervisor software interrupt: clear the request before returning.
+    w_sip(r_sip() & ~2UL);
+    kernel_softirq_count++;
+  } else {
+    // External UART/PLIC interrupt dispatch is connected in the next step.
+    kerneltrap_stop();
+  }
+  // An interrupt does not consume a user ecall: resume at the unchanged PC.
+  w_sepc(epc);
+  w_sstatus(status);
 }
 
 static void
