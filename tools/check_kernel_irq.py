@@ -75,7 +75,7 @@ irq_probe_stack_top:
         subprocess.run(["riscv64-unknown-elf-gcc"] + flags + [f"-DFAULT={int(fault)}", "-c",
                        str(source), "-o", str(folder / (name + ".o"))], check=True)
     kernel = folder / "kernel.elf"
-    objects = "entry start console printf userimg trampoline_link boot_vm trap kernel_trap_entry proc syscall user_mem".split()
+    objects = "entry start console printf userimg trampoline_link boot_vm trap kernel_trap_entry proc syscall user_mem plic".split()
     subprocess.run(["riscv64-unknown-elf-ld", "-T", "kernel/kernel.ld", "-o", str(kernel)] +
                    [f"kernel/{name}.o" for name in objects] + [str(folder / "main.o"), str(folder / "probe.o")], check=True)
     symbols = {}

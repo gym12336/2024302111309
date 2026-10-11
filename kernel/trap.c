@@ -3,6 +3,8 @@
 #include "memlayout.h"
 #include "trap.h"
 #include "syscall_dispatch.h"
+#include "uart.h"
+#include "plic.h"
 
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
@@ -45,6 +47,21 @@ kerneltrap_stop(void)
   stop_trap("unexpected kernel trap");
 }
 
+static void
+external_interrupt(void)
+{
+  int irq = plic_claim();
+  if (irq == UART0_IRQ)
+    uartintr();
+  if (irq != 0)
+    plic_complete(irq);
+  if (irq != 0 && irq != UART0_IRQ) {
+    printf("unexpected PLIC source=%d\n", irq);
+    stop_trap("unexpected external interrupt");
+  }
+  // A stale notification can legitimately claim 0; do not complete ID 0.
+}
+
 void
 kerneltrap(void)
 {
@@ -60,8 +77,9 @@ kerneltrap(void)
     // Supervisor software interrupt: clear the request before returning.
     w_sip(r_sip() & ~2UL);
     kernel_softirq_count++;
+  } else if (cause == ((1UL << 63) | 9)) {
+    external_interrupt();
   } else {
-    // External UART/PLIC interrupt dispatch is connected in the next step.
     kerneltrap_stop();
   }
   // An interrupt does not consume a user ecall: resume at the unchanged PC.
@@ -85,8 +103,7 @@ handle_user_trap(void)
     tf->epc += 4;
     tf->a0 = syscall_dispatch(tf);
   } else if (cause == ((1UL << 63) | 9)) {
-    // UART/PLIC handling is added in stage three. Never silently ignore it.
-    stop_trap("user external interrupt not connected yet");
+    external_interrupt(); // preserve epc and every user register
   } else {
     stop_trap("unexpected user trap");
   }

@@ -11,7 +11,7 @@ def main():
     check_kernel()
     objects = ["entry", "start", "console", "printf", "main", "userimg",
                "trampoline_link", "boot_vm", "trap", "kernel_trap_entry",
-               "user_boot", "proc", "syscall", "user_mem"]
+               "user_boot", "proc", "syscall", "user_mem", "plic"]
     with tempfile.TemporaryDirectory(prefix="lab2-exit-") as folder:
         folder = pathlib.Path(folder)
         for status in (0, -3):

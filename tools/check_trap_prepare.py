@@ -53,7 +53,7 @@ void main(void)
         f"-DTEST_CASE={case}", "-c", str(source), "-o", str(obj),
     ], check=True)
     objects = ["entry", "start", "console", "printf", "userimg",
-               "trampoline_link", "boot_vm", "kernel_trap_entry", "syscall", "proc", "user_mem"]
+               "trampoline_link", "boot_vm", "kernel_trap_entry", "syscall", "proc", "user_mem", "plic"]
     subprocess.run(["riscv64-unknown-elf-ld", "-T", "kernel/kernel.ld", "-o",
                     str(kernel)] + [f"kernel/{name}.o" for name in objects] + [str(obj)],
                    check=True)
@@ -69,7 +69,7 @@ void main(void)
     traps = directory / f"traps{case}.txt"
     messages = ["TRAP-PREPARE READY\n",
                 "unexpected user trap: scause=2 sepc=1000 stval=dead\n",
-                "user external interrupt not connected yet: scause=8000000000000009 sepc=1000 stval=dead\n",
+                "TRAP-PREPARE READY\n",
                 "usertrap called from supervisor mode: scause=8 sepc=1000 stval=dead\n"]
     expected_output = b"".join(bytes([byte]) + b"." for byte in messages[case].encode())
     process = subprocess.Popen([
@@ -110,7 +110,7 @@ void main(void)
             command("stop")
             if serial.read_bytes() != expected_output or traps.read_bytes():
                 raise RuntimeError(f"case {case}: output mismatch or real unexpected exception")
-            if case:
+            if case in (1, 3):
                 # The error path must halt without advancing epc or changing a0.
                 memory = command("x /15gx 0x3fffffe000")
             else:
@@ -121,16 +121,17 @@ void main(void)
             match = re.match(r"^[0-9a-fA-F]+:\s+(.*)", line)
             if match:
                 values.extend(int(v, 16) for v in re.findall(r"0x[0-9a-fA-F]+", match[1]))
-        if case:
+        if case in (1, 3):
             if values[3] != (0 if case == 3 else 0x1000) or values[14] != 123:
                 raise RuntimeError("fatal trap modified return address or result")
             print(f"PASS: {messages[case].strip()}; halted without advancing epc")
             return
         satp = 0x8000000000000000 | (symbols["root"] >> 12)
-        if values != [0x1004, 0xffffffffffffffff, 0x1000, 456, 999, satp]:
+        epc, result = (0x1000, 123) if case == 2 else (0x1004, 0xffffffffffffffff)
+        if values != [epc, result, 0x1000, 456, 999, satp]:
             raise RuntimeError(f"ecall observation mismatch: {values!r}")
         for name, expected in [
-            ("sepc", 0x1004),
+            ("sepc", epc),
             ("stvec", 0x3ffffff000 + symbols["uservec"] - symbols["trampoline"]),
             ("satp", satp),
         ]:
@@ -143,8 +144,11 @@ void main(void)
             status = re.search(r"\bmstatus\s+([0-9a-fA-F]+)", registers)
         if not status or int(status[1], 16) & ((1 << 18) | 0x122) != ((1 << 18) | 0x20):
             raise RuntimeError("SPP/SIE/SPIE/SUM preparation is incorrect")
-        print("PASS: simulated user ecall: epc 0x1000 -> 0x1004; a0=-1; a1/a7 preserved")
-        print("PASS: sepc=0x1004; stvec=TRAMPOLINE+uservec offset; satp unchanged")
+        if case == 2:
+            print("PASS: simulated external notification with claim=0; epc/a0/a1/a7 preserved")
+        else:
+            print("PASS: simulated user ecall: epc 0x1000 -> 0x1004; a0=-1; a1/a7 preserved")
+        print(f"PASS: sepc=0x{epc:x}; stvec=TRAMPOLINE+uservec offset; satp unchanged")
         print("PASS: SPP=0, SIE=0, SPIE=1; unrelated SUM bit preserved")
     finally:
         process.terminate()
