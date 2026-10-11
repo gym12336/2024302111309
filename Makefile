@@ -24,7 +24,7 @@ kernel/proc.o: kernel/proc.h kernel/types.h
 kernel/user_probe.o: kernel/syscall.h
 kernel/syscall.o: kernel/user_mem.h
 kernel/user_mem.o: kernel/user_mem.h kernel/memlayout.h kernel/types.h
-kernel/console.o: kernel/uart.h kernel/memlayout.h
+kernel/console.o: kernel/uart.h kernel/console.h kernel/memlayout.h
 kernel/plic.o: kernel/plic.h kernel/memlayout.h kernel/types.h
 kernel/main.o kernel/trap.o: kernel/uart.h kernel/plic.h
 

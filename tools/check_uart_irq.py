@@ -192,6 +192,11 @@ uart_probe_stack_top:
                 extra = b""
             if extra:
                 raise RuntimeError("extra serial output")
+            # This student's production configuration is a 64-byte stream ring.
+            if memory(symbols["input"], 5, "b") != list(received):
+                raise RuntimeError("UART bytes were echoed but not buffered")
+            if memory(symbols["input"] + 64, 4) != [0, 5, 5, 0]:
+                raise RuntimeError("stream ring indices or drop count incorrect")
         events = [line for line in traps.read_text().splitlines() if line.strip()]
         if len(events) != previous_irqs or any("desc=s_external" not in line for line in events):
             raise RuntimeError("unexpected hardware trap sequence")
@@ -199,6 +204,7 @@ uart_probe_stack_top:
         print(f"PASS: {mode}-mode UART IRQ10 receives and echoes 5 raw bytes: A, b, NUL, newline, Z")
         print(f"PASS: {mode}-mode restores all 31 registers, satp and return PC; user frame unchanged")
         print(f"PASS: {mode}-mode {previous_irqs} real external interrupts; repeated delivery and completion; no IRQ storm")
+        print(f"PASS: {mode}-mode all 5 UART bytes buffered in order; r=0, w=e=5, dropped=0")
     finally:
         process.terminate()
         try:

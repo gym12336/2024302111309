@@ -3,6 +3,77 @@
 #include "memlayout.h"
 #include "course_sid.h"
 #include "uart.h"
+#include "console.h"
+
+#if LAB2_BUF_SIZE <= 0 || (LAB2_BUF_SIZE & (LAB2_BUF_SIZE - 1)) != 0
+#error "Input ring capacity must be a positive power of two"
+#endif
+#if LAB2_BUF_SEMANTICS != 0 && LAB2_BUF_SEMANTICS != 1
+#error "Input semantics must be line (0) or stream (1)"
+#endif
+
+static struct {
+  uint8 buf[LAB2_BUF_SIZE];
+  uint64 r; // next byte to consume
+  uint64 w; // end of committed (readable) bytes
+  uint64 e; // end of all stored bytes, including an unfinished line
+  uint64 dropped;
+} input;
+
+// Single-hart critical sections: preserve the caller's interrupt state.
+static int
+input_lock(void)
+{
+  int enabled = intr_get();
+  intr_off();
+  asm volatile("" ::: "memory");
+  return enabled;
+}
+
+static void
+input_unlock(int enabled)
+{
+  asm volatile("" ::: "memory");
+  if (enabled)
+    intr_on();
+}
+
+void
+console_input(int c)
+{
+  if (c < 0 || c > 255)
+    return;
+  int enabled = input_lock();
+  if (input.e - input.r == LAB2_BUF_SIZE) {
+    input.dropped++;
+    input_unlock(enabled);
+    return; // keep existing data; neither store nor echo a dropped byte
+  }
+  input.buf[input.e % LAB2_BUF_SIZE] = (uint8)c;
+  input.e++;
+#if LAB2_BUF_SEMANTICS == 1
+  input.w = input.e;
+#else
+  // A full partial line must be readable to let a consumer free capacity.
+  if (c == '\n' || input.e - input.r == LAB2_BUF_SIZE)
+    input.w = input.e;
+#endif
+  uartputc_sync(c);
+  input_unlock(enabled);
+}
+
+int
+console_getc(void)
+{
+  int enabled = input_lock();
+  int c = -1;
+  if (input.r != input.w) {
+    c = input.buf[input.r % LAB2_BUF_SIZE];
+    input.r++;
+  }
+  input_unlock(enabled);
+  return c;
+}
 
 #define UART_RHR 0
 #define UART_THR 0
@@ -52,8 +123,7 @@ uartintr(void)
   uart_irq_count++;
   int c;
   while ((c = uartgetc()) != -1) {
-    // Stage-three first increment: raw echo. The input ring follows next.
-    uartputc_sync(c);
+    console_input(c);
     uart_rx_count++;
   }
 }
