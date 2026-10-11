@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check real U->S->U calls, getpid/write, memory boundaries and 31 registers."""
+"""Check real user calls, getpid/write/exit, memory boundaries and 31 registers."""
 import pathlib
 import re
 import socket
@@ -8,9 +8,9 @@ import tempfile
 import time
 
 
-def main():
+def main(kernel_path="kernel/kernel", exit_status=7):
     symbols = {}
-    for line in subprocess.check_output(["riscv64-unknown-elf-nm", "kernel/kernel"], text=True).splitlines():
+    for line in subprocess.check_output(["riscv64-unknown-elf-nm", str(kernel_path)], text=True).splitlines():
         parts = line.split()
         if len(parts) == 3:
             symbols[parts[2]] = int(parts[0], 16)
@@ -19,7 +19,7 @@ def main():
         monitor, serial, traps = [folder / name for name in ("monitor.sock", "serial", "traps")]
         process = subprocess.Popen([
             "qemu-system-riscv64", "-machine", "virt", "-bios", "none",
-            "-kernel", "kernel/kernel", "-display", "none", "-serial", "file:" + str(serial),
+            "-kernel", str(kernel_path), "-display", "none", "-serial", "file:" + str(serial),
             "-monitor", "unix:" + str(monitor) + ",server,nowait", "-d", "int", "-D", str(traps),
         ], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         try:
@@ -62,10 +62,16 @@ def main():
 
                 while True:
                     command("stop")
-                    if memory(symbols["probe_stack"] + 0xff8, 1) == [0x50415353]:
-                        break
+                    flag = memory(symbols["probe_stack"] + 0xff8, 1)[0]
+                    if flag == 0x4641494c:
+                        raise RuntimeError("user executed instructions after exit")
+                    if flag == 0x50415353 and memory(symbols["boot_process"] + 16, 1) == [2]:
+                        registers = command("info registers")
+                        pc = re.search(r"\bpc\s+([0-9a-fA-F]+)", registers)
+                        if pc and symbols["proc_exit_idle"] <= int(pc[1], 16) < symbols["proc_exit_idle_end"]:
+                            break
                     if time.monotonic() > deadline:
-                        raise RuntimeError("user completion flag missing; trap log: " + traps.read_text()[:1800])
+                        raise RuntimeError("kernel exit wait not reached; trap log: " + traps.read_text()[:1800])
                     command("cont")
                     time.sleep(0.05)
                 registers = command("info registers")
@@ -75,27 +81,34 @@ def main():
                 low = memory(symbols["user_low_l0"], 4)
                 high = memory(symbols["user_high_l0"] + 510 * 8, 2)
                 roots = memory(symbols["user_root"], 3)
+                process_record = memory(symbols["boot_process"], 4)
             expected = [0x100 + reg for reg in range(1, 32)]
             expected[1], expected[9], expected[16] = 0x4000, 0xffffffffffffffff, 999
             final_expected = expected.copy()
-            final_expected[9], final_expected[16] = 1, 11
+            final_expected[4], final_expected[5] = 0x3ff8, 0x50415353
+            final_expected[9], final_expected[16] = exit_status & ((1 << 64) - 1), 2
             if snapshot != expected or frame[5:] != final_expected:
                 raise RuntimeError(f"register mismatch: snapshot={snapshot!r}; frame={frame[5:]!r}")
             error = 0xffffffffffffffff
             if results != [1, error, error, error, 3, 3, error, error, error, error, 0, 1]:
                 raise RuntimeError(f"getpid/write results are incorrect: {results!r}")
-            final_epc = 0x1000 + symbols["user_probe_getpid_last"] - symbols["user_probe_start"] + 4
+            exit_epc = 0x1000 + symbols["user_probe_exit"] - symbols["user_probe_start"]
+            final_epc = exit_epc + 4
             kernel_satp = 0x8000000000000000 | (symbols["root"] >> 12)
             if frame[:5] != [kernel_satp, symbols["trap_stack"] + 8192, symbols["usertrap"], final_epc, 0]:
                 raise RuntimeError("kernel environment or return epc is incorrect")
             for name, expected_value in [
-                ("pc", 0x1000 + symbols["user_probe_done"] - symbols["user_probe_start"]),
-                ("satp", 0x8000000000000000 | (symbols["user_root"] >> 12)),
-                ("sepc", final_epc), ("stvec", 0x3ffffff000), ("x2/sp", 0x4000), ("x4/tp", 0x104),
+                ("satp", kernel_satp), ("sepc", exit_epc),
+                ("stvec", symbols["kernel_trap_entry"]), ("x4/tp", 0),
             ]:
                 match = re.search(r"\b" + re.escape(name) + r"\s+([0-9a-fA-F]+)", registers)
                 if not match or int(match[1], 16) != expected_value:
                     raise RuntimeError(f"CPU {name} mismatch: {registers}")
+            sp = re.search(r"\bx2/sp\s+([0-9a-fA-F]+)", registers)
+            if not sp or not symbols["trap_stack"] <= int(sp[1], 16) < symbols["trap_stack"] + 8192:
+                raise RuntimeError("exit did not keep the kernel trap stack")
+            if process_record != [1, symbols["user_root"], 2, exit_status & ((1 << 64) - 1)]:
+                raise RuntimeError(f"PID/state/exit status mismatch: {process_record!r}")
             def pte(address, flags):
                 return ((address >> 12) << 10) | flags
             if low != [0, pte(symbols["probe_code"], 0x5b), 0, pte(symbols["probe_stack"], 0xd7)]:
@@ -107,7 +120,8 @@ def main():
                               ("user_probe_start", "user_probe_getpid_first", "user_probe_wide",
                                "user_probe_zero", "user_probe_badfd", "user_probe_write_stack",
                                "user_probe_write_code", "user_probe_badptr", "user_probe_supervisor",
-                               "user_probe_cross", "user_probe_negative", "user_probe_empty", "user_probe_getpid_last")]
+                               "user_probe_cross", "user_probe_negative", "user_probe_empty", "user_probe_getpid_last",
+                               "user_probe_exit")]
             observed_traps = []
             for event in events:
                 match = re.search(r"epc:0x([0-9a-fA-F]+)", event)
@@ -118,13 +132,14 @@ def main():
                 raise RuntimeError(f"hardware trap sequence mismatch: {observed_traps!r}")
             if serial.read_bytes() != pathlib.Path("expect_banner.txt").read_bytes() + b"Hi\nOK\n":
                 raise RuntimeError("Lab1 prefix or raw user output changed; an invalid write may have leaked bytes")
-            print("PASS: 13 hardware U-mode ecalls in the expected order; no unexpected exceptions")
+            print("PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions")
             print("PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\\nOK\\n")
             print("PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output")
             print("PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1")
-            print("PASS: all 31 original register snapshots match; final frame a0=1, a7=11")
-            print(f"PASS: each ecall advances by 4; final sepc=0x{final_epc:x}; user reached its final loop")
-            print("PASS: saved kernel satp/stack/entry/hart match; active satp is the user page table")
+            print("PASS: all 31 original register snapshots match; final frame contains the exit request")
+            print(f"PASS: exit({exit_status}) records PID=1, state=EXITED and signed status={exit_status}")
+            print("PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec")
+            print(f"PASS: hardware sepc=0x{exit_epc:x}; frame epc=0x{final_epc:x} is not used to return")
             print("PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U")
             print("PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes")
             print("TRACE: user ecall addresses=" + ", ".join(f"0x{address:x}" for address in observed_traps))

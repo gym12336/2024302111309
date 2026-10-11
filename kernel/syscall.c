@@ -56,6 +56,9 @@ syscall_dispatch(struct trapframe *tf)
     return sys_getpid();
   case SYS_write:
     return sys_write(tf);
+  case SYS_exit:
+    // The user contract takes int: interpret the low 32 bits as signed status.
+    proc_exit((int)(uint32)argraw(tf, 0));
   default:
     return (uint64)-1;
   }

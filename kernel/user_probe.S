@@ -1,4 +1,7 @@
 #include "syscall.h"
+#ifndef PROBE_EXIT_STATUS
+#define PROBE_EXIT_STATUS 7
+#endif
     # Our small test program is copied into a U-accessible page at 0x1000.
     # Fixed-width instructions make the observed addresses easy to explain.
     .section .rodata.user_probe,"a"
@@ -117,6 +120,16 @@ user_probe_getpid_last:
     sd a0, -424(sp)
     li t0, 0x3ff8
     li t1, 0x50415353          # "PASS": published after all register stores
+    sd t1, 0(t0)
+    li a0, PROBE_EXIT_STATUS
+    li a7, SYS_exit
+    .globl user_probe_exit, user_probe_after_exit
+user_probe_exit:
+    ecall
+user_probe_after_exit:
+    # Reaching this code is a failure: a successful exit must never return.
+    li t0, 0x3ff8
+    li t1, 0x4641494c          # "FAIL"
     sd t1, 0(t0)
 user_probe_done:
     j user_probe_done         # Do not use privileged wfi in the user test.
