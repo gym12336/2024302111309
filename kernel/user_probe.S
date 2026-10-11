@@ -1,3 +1,4 @@
+#include "syscall.h"
     # Our small test program is copied into a U-accessible page at 0x1000.
     # Fixed-width instructions make the observed addresses easy to explain.
     .section .rodata.user_probe,"a"
@@ -40,6 +41,29 @@ user_probe_start:
     sd t4, -32(sp)
     sd t5, -24(sp)
     sd t6, -16(sp)
+    # After the original full-register snapshot, exercise dispatch boundaries.
+    .globl user_probe_getpid_first, user_probe_wide, user_probe_zero
+    .globl user_probe_unimplemented, user_probe_getpid_last
+    li a7, SYS_getpid
+user_probe_getpid_first:
+    ecall
+    sd a0, -512(sp)
+    li a7, 0x10000000b         # Low 32 bits equal 11, but this is not getpid.
+user_probe_wide:
+    ecall
+    sd a0, -504(sp)
+    li a7, 0
+user_probe_zero:
+    ecall
+    sd a0, -496(sp)
+    li a7, SYS_write           # Defined in the contract, not implemented yet.
+user_probe_unimplemented:
+    ecall
+    sd a0, -488(sp)
+    li a7, SYS_getpid
+user_probe_getpid_last:
+    ecall
+    sd a0, -480(sp)
     li t0, 0x3ff8
     li t1, 0x50415353          # "PASS": published after all register stores
     sd t1, 0(t0)

@@ -2,6 +2,7 @@
 #include "riscv.h"
 #include "memlayout.h"
 #include "trap.h"
+#include "proc.h"
 
 #define PROBE_ENTRY 0x1000UL
 #define PROBE_STACK 0x3000UL
@@ -23,6 +24,7 @@ extern void printf(const char *format, ...);
 void
 user_probe_launch(void)
 {
+  proc_boot_init();
   uint64 length = (uint64)user_probe_end - (uint64)user_probe_start;
   if (length > PGSIZE) {
     printf("user probe exceeds one page\n");

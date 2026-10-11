@@ -2,6 +2,7 @@
 #include "riscv.h"
 #include "memlayout.h"
 #include "trap.h"
+#include "syscall_dispatch.h"
 
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
@@ -57,8 +58,7 @@ handle_user_trap(void)
   if (cause == 8) {
     // ecall is always 32 bits, even when compressed instructions are enabled.
     tf->epc += 4;
-    // Stage two will dispatch tf->a7 and arguments; unsupported calls fail now.
-    tf->a0 = (uint64)-1;
+    tf->a0 = syscall_dispatch(tf);
   } else if (cause == ((1UL << 63) | 9)) {
     // UART/PLIC handling is added in stage three. Never silently ignore it.
     stop_trap("user external interrupt not connected yet");

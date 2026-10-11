@@ -53,7 +53,7 @@ void main(void)
         f"-DTEST_CASE={case}", "-c", str(source), "-o", str(obj),
     ], check=True)
     objects = ["entry", "start", "console", "printf", "userimg",
-               "trampoline_link", "boot_vm", "kernel_trap_entry"]
+               "trampoline_link", "boot_vm", "kernel_trap_entry", "syscall", "proc"]
     subprocess.run(["riscv64-unknown-elf-ld", "-T", "kernel/kernel.ld", "-o",
                     str(kernel)] + [f"kernel/{name}.o" for name in objects] + [str(obj)],
                    check=True)
