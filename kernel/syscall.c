@@ -2,6 +2,7 @@
 #include "syscall.h"
 #include "proc.h"
 #include "user_mem.h"
+#include "console.h"
 
 extern void uartputc_sync(int c);
 
@@ -42,6 +43,17 @@ sys_write(struct trapframe *tf)
 }
 
 static uint64
+sys_read(struct trapframe *tf)
+{
+  uint64 fd = argraw(tf, 0);
+  uint64 address = argraw(tf, 1);
+  uint64 length = argraw(tf, 2);
+  if (fd != 0 || length > 0x7fffffffUL)
+    return (uint64)-1;
+  return (uint64)(long)console_read(myproc()->pagetable, address, length);
+}
+
+static uint64
 sys_getpid(void)
 {
   return myproc()->pid;
@@ -56,6 +68,8 @@ syscall_dispatch(struct trapframe *tf)
     return sys_getpid();
   case SYS_write:
     return sys_write(tf);
+  case SYS_read:
+    return sys_read(tf);
   case SYS_exit:
     // The user contract takes int: interpret the low 32 bits as signed status.
     proc_exit((int)(uint32)argraw(tf, 0));

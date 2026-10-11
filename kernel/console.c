@@ -4,6 +4,7 @@
 #include "course_sid.h"
 #include "uart.h"
 #include "console.h"
+#include "user_mem.h"
 
 #if LAB2_BUF_SIZE <= 0 || (LAB2_BUF_SIZE & (LAB2_BUF_SIZE - 1)) != 0
 #error "Input ring capacity must be a positive power of two"
@@ -73,6 +74,44 @@ console_getc(void)
   }
   input_unlock(enabled);
   return c;
+}
+
+int
+console_read(uint64 *pagetable, uint64 destination, uint64 length)
+{
+  // Reject the entire destination before consuming any queued input.
+  if (!user_writable(pagetable, destination, length))
+    return -1;
+  if (length == 0)
+    return 0;
+  int enabled = intr_get();
+  intr_off();
+  uint64 done = 0;
+  while (done < length) {
+    int c = console_getc();
+    if (c < 0) {
+      if (done)
+        break; // Return available bytes instead of waiting to fill the request.
+      // UART interrupts produce input. Do not wait with SIE disabled.
+      // Busy waiting avoids a check-then-wfi race before a scheduler exists.
+      intr_on();
+      asm volatile("nop" ::: "memory");
+      intr_off();
+      continue;
+    }
+    uint8 byte = (uint8)c;
+    if (user_copyout(pagetable, destination + done, &byte, 1) < 0) {
+      input_unlock(enabled);
+      return -1; // Current single-task mappings cannot change during the copy.
+    }
+    done++;
+#if LAB2_BUF_SEMANTICS == 0
+    if (c == '\n')
+      break;
+#endif
+  }
+  input_unlock(enabled);
+  return (int)done;
 }
 
 #define UART_RHR 0
