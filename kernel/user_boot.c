@@ -43,6 +43,7 @@ user_probe_launch(void)
   user_high_l1[PX(1, TRAMPOLINE)] = PA2PTE(user_high_l0) | PTE_V;
   user_high_l0[PX(0, TRAMPOLINE)] = PA2PTE(trampoline) | PTE_V | PTE_R | PTE_X | PTE_A;
   user_high_l0[PX(0, TRAPFRAME)] = PA2PTE(boot_trapframe_pa()) | PTE_V | PTE_R | PTE_W | PTE_A | PTE_D;
+  myproc()->pagetable = user_root;
 
   struct trapframe *tf = (struct trapframe *)TRAPFRAME;
   // Header offsets are compile-checked. Give x1..x31 distinct test values.

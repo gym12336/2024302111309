@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check real U->S->U calls, getpid, dispatch boundaries and 31 registers."""
+"""Check real U->S->U calls, getpid/write, memory boundaries and 31 registers."""
 import pathlib
 import re
 import socket
@@ -70,7 +70,7 @@ def main():
                     time.sleep(0.05)
                 registers = command("info registers")
                 snapshot = memory(symbols["probe_stack"] + 0xf00, 31)
-                results = memory(symbols["probe_stack"] + 0xe00, 5)
+                results = memory(symbols["probe_stack"] + 0xe00, 12)
                 frame = memory(symbols["boot_trapframe"], 36)
                 low = memory(symbols["user_low_l0"], 4)
                 high = memory(symbols["user_high_l0"] + 510 * 8, 2)
@@ -81,8 +81,9 @@ def main():
             final_expected[9], final_expected[16] = 1, 11
             if snapshot != expected or frame[5:] != final_expected:
                 raise RuntimeError(f"register mismatch: snapshot={snapshot!r}; frame={frame[5:]!r}")
-            if results != [1, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 1]:
-                raise RuntimeError(f"getpid/unsupported-call results are incorrect: {results!r}")
+            error = 0xffffffffffffffff
+            if results != [1, error, error, error, 3, 3, error, error, error, error, 0, 1]:
+                raise RuntimeError(f"getpid/write results are incorrect: {results!r}")
             final_epc = 0x1000 + symbols["user_probe_getpid_last"] - symbols["user_probe_start"] + 4
             kernel_satp = 0x8000000000000000 | (symbols["root"] >> 12)
             if frame[:5] != [kernel_satp, symbols["trap_stack"] + 8192, symbols["usertrap"], final_epc, 0]:
@@ -104,7 +105,9 @@ def main():
             events = [line for line in traps.read_text().splitlines() if line.strip()]
             expected_traps = [0x1000 + symbols[label] - symbols["user_probe_start"] for label in
                               ("user_probe_start", "user_probe_getpid_first", "user_probe_wide",
-                               "user_probe_zero", "user_probe_unimplemented", "user_probe_getpid_last")]
+                               "user_probe_zero", "user_probe_badfd", "user_probe_write_stack",
+                               "user_probe_write_code", "user_probe_badptr", "user_probe_supervisor",
+                               "user_probe_cross", "user_probe_negative", "user_probe_empty", "user_probe_getpid_last")]
             observed_traps = []
             for event in events:
                 match = re.search(r"epc:0x([0-9a-fA-F]+)", event)
@@ -113,15 +116,17 @@ def main():
                 observed_traps.append(int(match[1], 16))
             if observed_traps != expected_traps:
                 raise RuntimeError(f"hardware trap sequence mismatch: {observed_traps!r}")
-            if serial.read_bytes() != pathlib.Path("expect_banner.txt").read_bytes():
-                raise RuntimeError("Lab1 output changed")
-            print("PASS: six hardware U-mode ecalls in the expected order; no unexpected exceptions")
-            print("PASS: getpid returns 1 twice; invalid 999/0/0x10000000b and unimplemented write return -1")
+            if serial.read_bytes() != pathlib.Path("expect_banner.txt").read_bytes() + b"Hi\nOK\n":
+                raise RuntimeError("Lab1 prefix or raw user output changed; an invalid write may have leaked bytes")
+            print("PASS: 13 hardware U-mode ecalls in the expected order; no unexpected exceptions")
+            print("PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\\nOK\\n")
+            print("PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output")
+            print("PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1")
             print("PASS: all 31 original register snapshots match; final frame a0=1, a7=11")
             print(f"PASS: each ecall advances by 4; final sepc=0x{final_epc:x}; user reached its final loop")
             print("PASS: saved kernel satp/stack/entry/hart match; active satp is the user page table")
             print("PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U")
-            print("PASS: Lab1 banner matches all 446 bytes")
+            print("PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes")
             print("TRACE: user ecall addresses=" + ", ".join(f"0x{address:x}" for address in observed_traps))
         finally:
             process.terminate()

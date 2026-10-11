@@ -6,6 +6,7 @@
 // Minimal identity for the single boot task; scheduling is not implemented yet.
 struct proc {
   uint64 pid;
+  uint64 *pagetable;
 };
 
 struct proc *myproc(void);

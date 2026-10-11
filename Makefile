@@ -8,7 +8,7 @@ QEMU = qemu-system-riscv64
 OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o \
        kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o \
        kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o \
-       kernel/proc.o kernel/syscall.o
+       kernel/proc.o kernel/syscall.o kernel/user_mem.o
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) -T kernel/kernel.ld -o $@ $(OBJS)
@@ -22,6 +22,8 @@ kernel/trap.o: kernel/syscall_dispatch.h
 kernel/syscall.o: kernel/syscall_dispatch.h kernel/syscall.h kernel/proc.h kernel/trapframe.h kernel/types.h
 kernel/proc.o: kernel/proc.h kernel/types.h
 kernel/user_probe.o: kernel/syscall.h
+kernel/syscall.o: kernel/user_mem.h
+kernel/user_mem.o: kernel/user_mem.h kernel/memlayout.h kernel/types.h
 
 %.o: %.c kernel/riscv.h kernel/course_sid.h
 	$(CC) $(CFLAGS) -Ikernel -c -o $@ $<

@@ -43,7 +43,7 @@ user_probe_start:
     sd t6, -16(sp)
     # After the original full-register snapshot, exercise dispatch boundaries.
     .globl user_probe_getpid_first, user_probe_wide, user_probe_zero
-    .globl user_probe_unimplemented, user_probe_getpid_last
+    .globl user_probe_badfd, user_probe_getpid_last
     li a7, SYS_getpid
 user_probe_getpid_first:
     ecall
@@ -56,17 +56,70 @@ user_probe_wide:
 user_probe_zero:
     ecall
     sd a0, -496(sp)
-    li a7, SYS_write           # Defined in the contract, not implemented yet.
-user_probe_unimplemented:
+    li a0, 0                  # stdin is not a writable console descriptor.
+    li a7, SYS_write
+user_probe_badfd:
     ecall
     sd a0, -488(sp)
+    .globl user_probe_write_stack, user_probe_write_code, user_probe_badptr
+    .globl user_probe_supervisor, user_probe_cross, user_probe_negative, user_probe_empty
+    li t0, 0x3000
+    li t1, 0x0a6948           # Little-endian bytes: 'H', 'i', '\n', '\0'.
+    sw t1, 0(t0)
+    li a0, 1
+    li a1, 0x3000
+    li a2, 3
+user_probe_write_stack:
+    ecall
+    sd a0, -480(sp)
+    li a0, 2
+    lla a1, user_probe_message # PC-relative address survives copying the code.
+    li a2, 3
+user_probe_write_code:
+    ecall
+    sd a0, -472(sp)
+    li a0, 1
+    li a1, 0
+    li a2, 1
+user_probe_badptr:
+    ecall
+    sd a0, -464(sp)
+    li a0, 1
+    li a1, 0x3fffffe000       # Mapped trapframe, but not a user-readable page.
+user_probe_supervisor:
+    ecall
+    sd a0, -456(sp)
+    li a0, 1
+    li a1, 0x3fff
+    li a2, 2                 # First byte is mapped, second byte is not.
+user_probe_cross:
+    ecall
+    sd a0, -448(sp)
+    li a0, 1
+    li a1, 0x3000
+    li a2, -1
+user_probe_negative:
+    ecall
+    sd a0, -440(sp)
+    li a0, 1
+    li a1, 0
+    li a2, 0                 # Empty write reads no bytes, even from address 0.
+user_probe_empty:
+    ecall
+    sd a0, -432(sp)
+    li t0, 0x105             # Restore the working registers for the final check.
+    li t1, 0x106
+    li a1, 0x10b
+    li a2, 0x10c
     li a7, SYS_getpid
 user_probe_getpid_last:
     ecall
-    sd a0, -480(sp)
+    sd a0, -424(sp)
     li t0, 0x3ff8
     li t1, 0x50415353          # "PASS": published after all register stores
     sd t1, 0(t0)
 user_probe_done:
     j user_probe_done         # Do not use privileged wfi in the user test.
+user_probe_message:
+    .ascii "OK\n"
 user_probe_end:
