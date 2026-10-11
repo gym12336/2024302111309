@@ -6,13 +6,15 @@ CFLAGS = -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding \
 QEMU = qemu-system-riscv64
 
 OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o \
-       kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o
+       kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o \
+       kernel/kernel_trap_entry.o
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) -T kernel/kernel.ld -o $@ $(OBJS)
 
 # Recheck the C/assembly memory contract whenever its header changes.
-kernel/trap.o: kernel/trapframe.h kernel/types.h
+kernel/trap.o: kernel/trapframe.h kernel/trap.h kernel/types.h kernel/memlayout.h
+kernel/main.o: kernel/trap.h kernel/types.h
 
 %.o: %.c kernel/riscv.h kernel/course_sid.h
 	$(CC) $(CFLAGS) -Ikernel -c -o $@ $<

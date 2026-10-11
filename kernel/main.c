@@ -1,8 +1,8 @@
 #include "course_sid.h"
+#include "trap.h"
 
 extern void printf(const char *format, ...);
 extern void boot_vm_init(void);
-extern void trap_init(void);
 
 void
 main(void)
