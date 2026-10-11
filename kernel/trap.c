@@ -1,4 +1,4 @@
-#include "types.h"
+#include "trapframe.h"
 #include "riscv.h"
 
 extern void printf(const char *format, ...);

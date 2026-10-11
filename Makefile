@@ -11,6 +11,9 @@ OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/mai
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) -T kernel/kernel.ld -o $@ $(OBJS)
 
+# Recheck the C/assembly memory contract whenever its header changes.
+kernel/trap.o: kernel/trapframe.h kernel/types.h
+
 %.o: %.c kernel/riscv.h kernel/course_sid.h
 	$(CC) $(CFLAGS) -Ikernel -c -o $@ $<
 
