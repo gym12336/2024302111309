@@ -3,6 +3,7 @@
 
 extern void printf(const char *format, ...);
 extern void boot_vm_init(void);
+extern void user_probe_launch(void) __attribute__((noreturn));
 
 void
 main(void)
@@ -21,6 +22,5 @@ main(void)
          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 
-  for (;;)
-    asm volatile("wfi");
+  user_probe_launch();
 }

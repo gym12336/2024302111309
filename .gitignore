@@ -7,6 +7,8 @@ user/usys.S
 user-flat/
 *.o
 *.d
+__pycache__/
+*.pyc
 
 # 调试日志(体积大且可重新生成)
 *.log

@@ -11,6 +11,13 @@ static uint8 boot_trapframe[PGSIZE] __attribute__((aligned(PGSIZE)));
 
 extern char trampoline[];
 
+// The first user map must refer to the same physical frame as the kernel map.
+uint64
+boot_trapframe_pa(void)
+{
+  return (uint64)boot_trapframe;
+}
+
 #define PTE_A (1L << 6)
 #define PTE_D (1L << 7)
 
