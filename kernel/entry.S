@@ -14,6 +14,8 @@ _entry:
     # This lab boots on hart 0 only. Other harts wait here forever.
     csrr t0, mhartid
     bnez t0, park
+  # Save this hart's ID while mhartid is accessible in machine mode.
+  mv tp, t0
 
     # The stack grows downward, so start at the first byte above its storage.
     la sp, boot_stack_top
