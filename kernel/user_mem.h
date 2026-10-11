@@ -5,5 +5,7 @@
 
 int user_readable(uint64 *pagetable, uint64 address, uint64 length);
 int user_copyin(uint64 *pagetable, void *destination, uint64 source, uint64 length);
+int user_writable(uint64 *pagetable, uint64 address, uint64 length);
+int user_copyout(uint64 *pagetable, uint64 destination, const void *source, uint64 length);
 
 #endif
