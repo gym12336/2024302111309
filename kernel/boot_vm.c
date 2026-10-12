@@ -18,6 +18,15 @@ boot_trapframe_pa(void)
   return (uint64)boot_trapframe;
 }
 
+void
+boot_trapframe_select(uint64 physical_address)
+{
+  // Select the running process's frame in the kernel's fixed high alias.
+  top_l0[PX(0, TRAPFRAME)] = PA2PTE(physical_address) | PTE_V | PTE_R | PTE_W |
+                           (1UL << 6) | (1UL << 7);
+  asm volatile("sfence.vma zero, zero" ::: "memory");
+}
+
 #define PTE_A (1L << 6)
 #define PTE_D (1L << 7)
 

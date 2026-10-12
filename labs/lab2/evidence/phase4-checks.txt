@@ -1,0 +1,234 @@
+$ make
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/entry.o kernel/entry.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/start.o kernel/start.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/console.o kernel/console.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/printf.o kernel/printf.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/main.o kernel/main.c
+perl user/usys.pl > user/usys.S
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/sh.c            -o user-flat/sh.o
+riscv64-unknown-elf-ld: warning: user-flat/sh.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-objcopy -O binary user-flat/sh.elf user-flat/sh.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/hi.c            -o user-flat/hi.o
+riscv64-unknown-elf-objcopy -O binary user-flat/hi.elf user-flat/hi.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/spin.c            -o user-flat/spin.o
+riscv64-unknown-elf-objcopy -O binary user-flat/spin.elf user-flat/spin.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/badecall.c            -o user-flat/badecall.o
+riscv64-unknown-elf-objcopy -O binary user-flat/badecall.elf user-flat/badecall.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/bufstorm.c            -o user-flat/bufstorm.o
+riscv64-unknown-elf-objcopy -O binary user-flat/bufstorm.elf user-flat/bufstorm.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/proctest.c            -o user-flat/proctest.o
+riscv64-unknown-elf-ld: warning: user-flat/proctest.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-objcopy -O binary user-flat/proctest.elf user-flat/proctest.bin
+printf '.section .rodata\n .global _uprog_table\n_uprog_table:\n' > kernel/userimg.S.tmp
+for p in sh hi spin badecall bufstorm proctest; do \
+  printf ' .quad _uprog_%s_start\n .quad _uprog_%s_end\n .asciz "%s"\n .balign 8\n' \
+    $p $p $p >> kernel/userimg.S.tmp; \
+  printf ' .global _uprog_%s_start\n_uprog_%s_start:\n .incbin "user-flat/%s.bin"\n .global _uprog_%s_end\n_uprog_%s_end:\n .balign 8\n' \
+    $p $p $p $p $p >> kernel/userimg.S.tmp; \
+done
+printf ' .quad 0\n .quad 0\n' >> kernel/userimg.S.tmp
+mv kernel/userimg.S.tmp kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/userimg.o kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/trampoline_link.o kernel/trampoline_link.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/boot_vm.o kernel/boot_vm.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/trap.o kernel/trap.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/kernel_trap_entry.o kernel/kernel_trap_entry.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_boot.o kernel/user_boot.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_probe.o kernel/user_probe.S
+python3 tools/gen_user_meta.py sh hi spin badecall bufstorm proctest > kernel/user_meta.h.tmp
+mv kernel/user_meta.h.tmp kernel/user_meta.h
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/proc.o kernel/proc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/syscall.o kernel/syscall.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_mem.o kernel/user_mem.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/plic.o kernel/plic.c
+riscv64-unknown-elf-ld -T kernel/kernel.ld -o kernel/kernel kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o
+exit=0
+
+$ /usr/bin/python3 tools/check_expect.py 2024302111309
+[ok] 形状校验通过(sid=2024302111309, 协议1)。注意:最终验收还会将你的内核实跑输出与此文件逐字节比对,请确保二者一致。
+exit=0
+
+$ /usr/bin/python3 tools/check_course_files.py
+PASS: all 18 gifted originals and installed copies match lab2.zip byte for byte
+PASS: original support/inject_uart.py is unchanged; compatibility adaptation exists only in our wrapper
+exit=0
+
+$ /usr/bin/python3 tools/check_trapframe.py
+PASS: 31 register save/restore offsets match the compiled C layout
+PASS: 36 fields, 288 bytes; a0=112, a7=168, sp=48, epc=24
+PASS: swapping a0/a1 in a temporary header is rejected by the compiler
+exit=0
+
+$ /usr/bin/python3 tools/check_trap_prepare.py
+PASS: simulated user ecall: epc 0x1000 -> 0x1004; a0=-1; a1/a7 preserved
+PASS: sepc=0x1004; stvec=TRAMPOLINE+uservec offset; satp unchanged
+PASS: SPP=0, SIE=0, SPIE=1; unrelated SUM bit preserved
+PASS: unexpected user trap: scause=2 sepc=1000 stval=dead; halted without advancing epc
+PASS: simulated external notification with claim=0; epc/a0/a1/a7 preserved
+PASS: sepc=0x1000; stvec=TRAMPOLINE+uservec offset; satp unchanged
+PASS: SPP=0, SIE=0, SPIE=1; unrelated SUM bit preserved
+PASS: usertrap called from supervisor mode: scause=8 sepc=1000 stval=dead; halted without advancing epc
+NOTE: tests simulate CSR state in S-mode; no real U-mode ecall/sret was executed
+exit=0
+
+$ /usr/bin/python3 tools/check_exit.py
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(7) records PID=1, state=EXITED and signed status=7
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(0) records PID=1, state=EXITED and signed status=0
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(-3) records PID=1, state=EXITED and signed status=-3
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: exit statuses 7, 0 and -3 all terminate; formal kernel was not replaced
+exit=0
+
+$ /usr/bin/python3 tools/check_kernel_irq.py
+PASS: one real S-mode software interrupt; SSIP cleared, handler count=1
+PASS: all 31 kernel registers restored; original sp and sepc preserved
+PASS: kernel continued after sret; satp and all 288 user trapframe bytes unchanged
+TRACE: riscv_cpu_do_interrupt: hart:0, async:1, cause:0000000000000001, epc:0x000000008000159a, tval:0x0000000000000000, desc=s_software
+PASS: real S-mode illegal instruction is diagnosed and halted; user frame unchanged
+exit=0
+
+$ /usr/bin/python3 tools/check_uart_irq.py
+PASS: S-mode UART IRQ10 receives and echoes 5 raw bytes: A, b, NUL, newline, Z
+PASS: S-mode restores all 31 registers, satp and return PC; user frame unchanged
+PASS: S-mode 5 real external interrupts; repeated delivery and completion; no IRQ storm
+PASS: S-mode all 5 UART bytes buffered in order; r=0, w=e=5, dropped=0
+PASS: U-mode UART IRQ10 receives and echoes 5 raw bytes: A, b, NUL, newline, Z
+PASS: U-mode restores all 31 registers, satp and return PC; user frame unchanged
+PASS: U-mode 5 real external interrupts; repeated delivery and completion; no IRQ storm
+PASS: U-mode all 5 UART bytes buffered in order; r=0, w=e=5, dropped=0
+exit=0
+
+$ /usr/bin/python3 tools/check_console_ring.py
+PASS: stream ring: empty/NUL, all 64 slots, drop 2 new bytes, FIFO and slot reuse
+PASS: stream ring: uint64 counter wrap; interrupt state preserved; exact accepted-byte echo
+PASS: stream ring makes each byte readable immediately without newline
+PASS: line ring: empty/NUL, all 64 slots, drop 2 new bytes, FIFO and slot reuse
+PASS: line ring: uint64 counter wrap; interrupt state preserved; exact accepted-byte echo
+PASS: line ring hides partial lines; newline and full capacity commit readable data
+exit=0
+
+$ /usr/bin/python3 tools/check_user_copyout.py
+PASS: copyout crosses two noncontiguous physical pages; binary data and surrounding bytes correct
+PASS: RX/supervisor/unmapped/write-only/device/large-page destinations rejected
+PASS: invalid suffix writes no prefix; range overflow rejected; zero length touches no memory
+PASS: copyin still reads RX pages and returns cross-page data; no unexpected hardware traps
+exit=0
+
+$ /usr/bin/python3 tools/check_read.py
+PASS: stream read: 12 real U-mode ecalls; bad fd/pointer/permission/length rejected without consuming input
+PASS: stream read: zero length and queued 4-byte NUL-containing partial read; destination bounds correct
+PASS: stream read: empty request waits; real S-mode UART IRQ resumes it; returns 1 byte(s)
+PASS: stream read: user registers/epc/page table restored; getpid continues; raw echo exact
+PASS: line read: 12 real U-mode ecalls; bad fd/pointer/permission/length rejected without consuming input
+PASS: line read: zero length and queued 4-byte NUL-containing partial read; destination bounds correct
+PASS: line read: empty request waits; real S-mode UART IRQ resumes it; returns 2 byte(s)
+PASS: line read: user registers/epc/page table restored; getpid continues; raw echo exact
+PASS: line read remains waiting after Z and returns Z/newline only after newline arrives
+exit=0
+
+$ /usr/bin/python3 tools/check_read_pressure.py
+PASS: stream pressure: UART receives 80 bytes; keeps 64, drops 16; real user read returns 64 with intact guards
+PASS: stream pressure: drain then reuse; 88 received = 72 accepted + 16 dropped; FIFO and raw echo correct
+PASS: stream pressure: AB/newline/CD/newline returns 6 once; Z/newline and getpid continue
+PASS: stream pressure: user registers preserved; no unexpected trap or post-input IRQ storm
+PASS: line pressure: UART receives 80 bytes; keeps 64, drops 16; real user read returns 64 with intact guards
+PASS: line pressure: drain then reuse; 88 received = 72 accepted + 16 dropped; FIFO and raw echo correct
+PASS: line pressure: AB/newline/CD/newline returns 3 then 3; Z/newline and getpid continue
+PASS: line pressure: user registers preserved; no unexpected trap or post-input IRQ storm
+exit=0
+
+$ /usr/bin/python3 tools/check_shell.py
+PASS: formal sh PID=1; kernel_end=0x800171d8; banks start=0x80018000, 104 pages
+PASS: image VA=0, BSS zero; private frame/kernel stack; 16-byte user stack alignment; guard and supervisor mappings
+PASS: gift hi/badecall; missing exec returns to Shell; fork isolation, signed status, invalid wait/exec, reuse and full capacity
+PASS: gift bufstorm makes four stream reads, consumes/echoes exactly four paced bytes and returns to Shell
+PASS: spin prints through real user ecalls; its page table/frame/private kernel stack are selected; Shell waits; UART echoes Z
+PASS: no unexpected traps; spin is intentionally endless without timer preemption
+PASS: Lab1 startup prefix unchanged (446 bytes); transcript saved to labs/lab2/evidence/phase4-shell.txt
+exit=0
+
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script support/lab2-stream.txt --log labs/lab2/evidence/lab2-stream-inject.txt
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'hi: user program running, pid=2': PASS
+EXPECT 'TEST-1 PASS: unknown syscalls all return -1': PASS
+EXPECT 'BUFSTORM lines=4 bytes=4': PASS
+EXPECT 'hi: user program running, pid=5': PASS
+EXPECT 'PROCTEST PASS:.*capacity': PASS
+EXPECT 'hi: user program running, pid=18': PASS
+log → labs/lab2/evidence/lab2-stream-inject.txt;EXPECT 失败 0 条
+exit=0
+
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script support/lab2-long-storm.txt --log labs/lab2/evidence/lab2-long-storm-inject.txt
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'BUFSTORM lines=4 bytes=[1-9][0-9]*': PASS
+EXPECT 'hi: user program running, pid=[0-9]+': PASS
+log → labs/lab2/evidence/lab2-long-storm-inject.txt;EXPECT 失败 0 条
+exit=0
+
+PASS: build and all 14 acceptance checks passed; formal kernel still boots Shell
+
+补充复核：proctest 的隔离变量设为 volatile，确保实际内存读写；bufstorm 四字节双重回显增加逐字节断言；跳板入口允许 sp 恰好等于内核栈顶。
+$ make && python3 -u tools/check_shell.py
+PASS: formal sh PID=1; kernel_end=0x800171d8; banks start=0x80018000, 104 pages
+PASS: image VA=0, BSS zero; private frame/kernel stack; 16-byte user stack alignment; guard and supervisor mappings
+PASS: gift hi/badecall; missing exec returns to Shell; fork isolation, signed status, invalid wait/exec, reuse and full capacity
+PASS: gift bufstorm makes four stream reads, consumes/echoes exactly four paced bytes and returns to Shell
+PASS: spin prints through real user ecalls; its page table/frame/private kernel stack are selected; Shell waits; UART echoes Z
+PASS: no unexpected traps; spin is intentionally endless without timer preemption
+PASS: Lab1 startup prefix unchanged (446 bytes); transcript saved to labs/lab2/evidence/phase4-shell.txt
+exit=0

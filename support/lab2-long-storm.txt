@@ -1,0 +1,13 @@
+# Each payload has 96 characters, longer than the assigned 64-byte queue.
+# A stream read may be short, so bufstorm can finish before a whole line.
+# Subsequent characters may become Shell commands; hi must still run afterward.
+EXPECT sh>
+SEND bufstorm
+WAIT 200
+REPEAT 4 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh
+EXPECT BUFSTORM lines=4 bytes=[1-9][0-9]*
+WAIT 300
+SEND
+WAIT 100
+SEND hi
+EXPECT hi: user program running, pid=[0-9]+

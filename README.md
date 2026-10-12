@@ -83,4 +83,19 @@ git archive --format=zip -o 提交-labN-2024302111309.zip labN-submit
 
 - [x] lab0 环境搭建与自检通过
 - [ ] lab0 三份图纸(控制流图 / 数据结构快照 / 时钟中断时序图)→ `labs/lab0/`
-- [ ] lab1 实现 entry.S / start.c / console.c / printf.c / main.c
+- [x] lab1 内核启动、打印与 Banner 验收通过
+- [x] lab2 陷入、系统调用、中断控制台、Shell 装载和内嵌命令通过
+
+## Lab2 学习与验收入口
+
+- [详细学习文档](labs/lab2/逐步实现与讲解.md)：阶段四集中在第17步，含概念解释、地址和父子进程例子。
+- [PDF要求对照](labs/lab2/PDF验收对照.md)、[验收记录](labs/lab2/验收记录.md)、[设计笔记](labs/lab2/设计笔记.md)。
+- [现场运行与问答](labs/lab2/现场运行与问答.md)：运行hi/badecall/proctest，最后用spin演示输入中断。
+
+正式 `make qemu` 启动到 `sh> `。spin无限运行，退出QEMU按Ctrl+a后按x。
+
+```bash
+python3 tools/run_lab2_checks.py --clean  # 源码清理重建及14项验收
+```
+
+原赠送串口脚本通过 `tools/run_course_inject.py` 适配sh提示符和无磁盘启动；赠送文件未改。当前使用四个固定进程槽和wait驱动的协作执行，read为空时允许中断忙等；详细能力范围及RWX程序页的限制见学习文档17.16。

@@ -45,3 +45,18 @@ clean:
 
 # Lab2 赠送规则保持原样，通过 include 并入当前构建。
 include Makefile.upgrade
+
+# Lab2 additions around the immutable upgrade rules.
+# Gift recipes share ulib.o/printf.o/usys.o; serialize their writes.
+.NOTPARALLEL:
+UPROGS += badecall bufstorm proctest
+UFLAGS += -msmall-data-limit=0 -mno-relax
+kernel/userimg.S: $(addprefix user-flat/,$(UPROGS:=.bin))
+kernel/main.o kernel/trap.o: kernel/proc.h
+$(addprefix user-flat/,$(UPROGS:=.bin)): Makefile
+user-flat/badecall.bin: support/tests/badecall.c
+user-flat/bufstorm.bin: support/tests/bufstorm.c
+kernel/user_meta.h: tools/gen_user_meta.py $(addprefix user-flat/,$(UPROGS:=.bin))
+	python3 tools/gen_user_meta.py $(UPROGS) > $@.tmp
+	mv $@.tmp $@
+kernel/proc.o: kernel/user_meta.h kernel/user_mem.h kernel/trapframe.h kernel/trap.h

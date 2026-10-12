@@ -1,0 +1,23 @@
+# The assigned stream mode may return one byte per read.
+# The gift bufstorm counts successful reads in its "lines" variable.
+EXPECT sh>
+SEND hi
+EXPECT hi: user program running, pid=2
+SEND badecall
+EXPECT TEST-1 PASS: unknown syscalls all return -1
+SEND bufstorm
+WAIT 200
+SENDRAW a
+WAIT 200
+SENDRAW b
+WAIT 200
+SENDRAW c
+WAIT 200
+SENDRAW d
+EXPECT BUFSTORM lines=4 bytes=4
+SEND hi
+EXPECT hi: user program running, pid=5
+SEND proctest
+EXPECT PROCTEST PASS:.*capacity
+SEND hi
+EXPECT hi: user program running, pid=18

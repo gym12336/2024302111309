@@ -1,0 +1,144 @@
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.sh> hi
+hi: user program running, pid=2
+sh> badecall
+TEST-1 PASS: unknown syscalls all return -1
+sh> missing
+exec missing
+ failed
+sh> proctest
+PROCTEST PASS: fork isolation, signed status, wait errors, exec errors, slot reuse, capacity
+sh> hi
+hi: user program running, pid=17
+sh> hi
+hi: user program running, pid=18
+sh> hi
+hi: user program running, pid=19
+sh> hi
+hi: user program running, pid=20
+sh> hi
+hi: user program running, pid=21
+sh> hi
+hi: user program running, pid=22
+sh> bufstorm
+aabbccddBUFSTORM lines=4 bytes=4
+sh> spin
+spin 0
+spin 1
+spin 2
+spin 3
+spin 4
+spin 5
+spin 6
+spin 7
+spin 8
+spin 9
+spin 10
+spin 11
+spin 12
+spin 13
+spin 14
+spin 15
+spin 16
+spin 17
+spin 18
+spin 19
+spin 20
+spin 21
+spin 22
+spin 23
+spin 24
+spin 25
+spin 26
+spin 27
+spin 28
+spin 29
+spin 30
+spin 31
+spin 32
+spin 33
+spin 34
+spin 35
+spin 36
+spin 37
+spin 38
+spin 39
+spin 40
+spin 41
+spin 42
+spin 43
+spin 44
+spin 45
+spin 46
+spin 47
+spin 48
+spin 49
+spin 50
+spin 51
+spin 52
+spin 53
+spin 54
+spin 55
+spin 56
+spin 57
+spin 58
+spin 59
+spin 60
+spin 61
+spin 62
+spin 63
+spin 64
+spin 65
+spin 66
+spin 67
+spin 68
+spin 69
+spin 70
+spin 71
+spin 72
+spin 73
+Zspin 74
+spin 75
+spin 76
+spin 77
+spin 78
+spin 79
+spin 80
+spin 81
+spin 82
+spin 83
+spin 84
+spin 85
+spin 86
+spin 87
+spin 88
+spin 89
+spin 90
+spin 91
+spin 92
+spin 93
+spin 94
+spin 95
+spin 96
+spin 97
+spin 98
+spin 99
+spin 100
+spin 101
+spin 102
+spin 103
+spin 104
+spin 105
+spin 106
+spin 107
+spin 108
+spin 109
+spin 110
+spin 111
+spin 112
+spin 113
+spin 114
+spin 115
+spi

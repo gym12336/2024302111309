@@ -5,14 +5,22 @@
 #include "syscall_dispatch.h"
 #include "uart.h"
 #include "plic.h"
+#include "proc.h"
 
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
 static uint64 active_user_satp;
 static volatile uint64 kernel_softirq_count;
 
-// A separate stack for the first boot user task. Later processes need their own.
+// Legacy probe stack. Shell processes use their bank's private kernel stack.
 static uint8 trap_stack[2 * PGSIZE] __attribute__((aligned(16)));
+
+static uint64
+kernel_stack_top(void)
+{
+  uint64 stack = myproc()->kernel_stack;
+  return stack ? stack : (uint64)(trap_stack + sizeof(trap_stack));
+}
 
 void
 trap_init(void)
@@ -24,7 +32,7 @@ trap_init(void)
 
   // These are inputs to uservec, so prepare them before entering user mode.
   tf->kernel_satp = r_satp();
-  tf->kernel_sp = (uint64)(trap_stack + sizeof(trap_stack));
+  tf->kernel_sp = kernel_stack_top();
   tf->kernel_trap = (uint64)usertrap;
   tf->kernel_hartid = r_tp();
   w_stvec((uint64)kernel_trap_entry);
@@ -116,7 +124,7 @@ prepare_return(void)
   // No interrupt may enter uservec while we still hold kernel registers.
   intr_off();
   tf->kernel_satp = r_satp();
-  tf->kernel_sp = (uint64)(trap_stack + sizeof(trap_stack));
+  tf->kernel_sp = kernel_stack_top();
   tf->kernel_trap = (uint64)usertrap;
   tf->kernel_hartid = r_tp();
   w_stvec(TRAMPOLINE + ((uint64)uservec - (uint64)trampoline));

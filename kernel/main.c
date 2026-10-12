@@ -3,6 +3,7 @@
 #include "riscv.h"
 #include "uart.h"
 #include "plic.h"
+#include "proc.h"
 
 extern void printf(const char *format, ...);
 extern void boot_vm_init(void);
@@ -29,5 +30,9 @@ main(void)
          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 
   intr_on(); // the kernel entry and device chain are now ready
+#ifdef LAB2_BOOT_PROBE
   user_probe_launch();
+#else
+  proc_shell_launch();
+#endif
 }

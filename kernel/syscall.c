@@ -70,6 +70,13 @@ syscall_dispatch(struct trapframe *tf)
     return sys_write(tf);
   case SYS_read:
     return sys_read(tf);
+  case SYS_fork:
+    return (uint64)(long)proc_fork();
+  case SYS_exec:
+    // Course sh uses exec(name, argv); argv is intentionally unused in lab2.
+    return (uint64)(long)proc_exec(argraw(tf, 0));
+  case SYS_wait:
+    return (uint64)(long)proc_wait(argraw(tf, 0));
   case SYS_exit:
     // The user contract takes int: interpret the low 32 bits as signed status.
     proc_exit((int)(uint32)argraw(tf, 0));

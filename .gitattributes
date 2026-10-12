@@ -1,0 +1,3 @@
+# Serial evidence preserves exact bytes, including the trailing space in sh>.
+labs/lab2/evidence/*-inject.txt -text -whitespace
+labs/lab2/evidence/phase4-shell.txt -text -whitespace

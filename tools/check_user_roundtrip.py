@@ -8,7 +8,11 @@ import tempfile
 import time
 
 
-def main(kernel_path="kernel/kernel", exit_status=7):
+def main(kernel_path=None, exit_status=7):
+    if kernel_path is None:
+        from build_probe_kernel import build
+        with tempfile.TemporaryDirectory(prefix="lab2-probe-build-") as folder:
+            return main(build(folder, exit_status), exit_status)
     symbols = {}
     for line in subprocess.check_output(["riscv64-unknown-elf-nm", str(kernel_path)], text=True).splitlines():
         parts = line.split()

@@ -3,6 +3,7 @@ kernel/*.o
 kernel/kernel
 kernel/*.asm
 kernel/userimg.S
+kernel/user_meta.h
 user/usys.S
 user-flat/
 *.o
