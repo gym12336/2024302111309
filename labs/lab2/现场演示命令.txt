@@ -1,0 +1,95 @@
+实验2现场演示命令
+姓名：高一鸣    学号：2024302111309
+
+按下面顺序分段操作，只复制命令本身。
+“WSL终端”用于make、python3、awk、git等命令。
+“sh>”是实验内核里的命令行，只输入内嵌程序名。
+按键操作需要手动完成，不是要输入的一串文字。
+
+一、进入WSL并编译
+
+【Windows终端】
+wsl
+
+【进入WSL后】
+cd /mnt/d/UserFolders/Desktop/osshijian/2024302111309高一鸣
+make
+
+二、启动内核，演示输入与hi
+
+【WSL终端】
+make qemu
+
+【出现sh>后】
+hi
+
+操作：先输入hi，观察字符回显，再按回车执行。
+结果：显示hi的进程编号，退出后重新出现sh>。
+
+三、演示课程非法系统调用测试
+
+【sh>后】
+badecall
+
+结果：出现TEST-1 PASS，之后重新出现sh>。
+
+【退出QEMU】
+按Ctrl+a，松开，再单独按x。
+退出后回到WSL终端，再进行下一项。
+
+四、运行课程串口长输入测试
+
+【WSL终端，项目目录内；整行复制】
+python3 tools/run_course_inject.py --tree . --script support/lab2-long-storm.txt --log /tmp/lab2-demo-long.txt
+
+这个脚本自动启动内核、运行bufstorm并发送长输入。
+结果：boot ok，3项检查PASS，最后失败0条；长输入后hi仍能运行。
+脚本结束后自动回到WSL终端。
+
+五、实验1启动输出回归
+
+【WSL终端；把下面五行作为一整段复制】
+if cmp -n 446 expect_banner.txt /tmp/lab2-demo-long.txt; then
+  echo "实验1启动输出一致"
+else
+  echo "实验1启动输出不一致"
+fi
+
+结果：实验1启动输出一致。
+这里使用上一项生成的日志，因此先完成第四项。
+
+六、运行spin，同时保存输出
+
+【WSL终端】
+make qemu | tee /tmp/lab2-spin-demo.log
+
+【出现sh>后】
+spin
+
+操作：输入spin后按回车，看到持续输出。
+然后切到英文输入，按一次Shift+Z，发送大写Z，不用回车。
+不要长按：spin不读取输入，重复输入会填满64字节队列。
+Z可能混在快速滚动的文字里，下一项用日志确认。
+
+【退出QEMU】
+按Ctrl+a，松开，再单独按x。
+
+七、查找spin运行期间的Z回显
+
+【退出QEMU后的WSL终端；整行复制】
+awk '/spin 0/ {started=1} started && /Z/ {print}' /tmp/lab2-spin-demo.log
+
+结果示例：Zspin 2803。
+数字和位置会变化，查到包含Z的运行期文字就说明回显成功。
+这条命令排除了启动文字中原本就有的Z。
+若没有输出，确认输入焦点和英文输入后，重新从第六项开始。
+
+八、展示验收提交
+
+【WSL终端】
+git show --stat lab2-submit
+
+结果：展示验收标签对应的提交和文件列表。
+同时打开设计笔记.md展示两张流程图，打开验收记录.md展示已归档的自测用例。
+
+提醒：make、python3、awk、git都在WSL终端执行，不能在sh>中输入。
