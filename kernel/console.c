@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "console.h"
 #include "user_mem.h"
+#include "proc.h"
 
 #if LAB2_BUF_SIZE <= 0 || (LAB2_BUF_SIZE & (LAB2_BUF_SIZE - 1)) != 0
 #error "Input ring capacity must be a positive power of two"
@@ -92,6 +93,7 @@ console_read(uint64 *pagetable, uint64 destination, uint64 length)
     if (c < 0) {
       if (done)
         break; // Return available bytes instead of waiting to fill the request.
+      proc_yield(1); // No bytes consumed: restart read on the next turn.
       // UART interrupts produce input. Do not wait with SIE disabled.
       // Busy waiting avoids a check-then-wfi race before a scheduler exists.
       intr_on();

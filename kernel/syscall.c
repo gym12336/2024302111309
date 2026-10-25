@@ -3,6 +3,8 @@
 #include "proc.h"
 #include "user_mem.h"
 #include "console.h"
+#include "vm_ops.h"
+#include "vm_debug.h"
 
 extern void uartputc_sync(int c);
 
@@ -64,6 +66,11 @@ syscall_dispatch(struct trapframe *tf)
 {
   // Compare the full 64-bit register, so large invalid numbers cannot alias 11.
   switch (tf->a7) {
+  case SYS_dump_pagetable:
+    dump_pagetable(myproc()->pagetable);
+    return 0;
+  case SYS_sbrk:
+    return proc_sbrk((int)(uint32)argraw(tf, 0));
   case SYS_getpid:
     return sys_getpid();
   case SYS_write:

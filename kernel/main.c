@@ -16,7 +16,8 @@ main(void)
   trap_init();
   uart_init();
   plic_init();
-  w_sie(r_sie() | SIE_SEIE);
+  w_stimecmp(r_time() + 100000);
+  w_sie(r_sie() | SIE_SEIE | SIE_STIE);
 
   printf("OSLAB1 sid=%lu mod97=0x%lx\n",
          (unsigned long)COURSE_SID,

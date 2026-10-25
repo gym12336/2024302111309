@@ -20,6 +20,11 @@ start(void)
   w_medeleg(0xffff);
   w_mideleg(0xffff);
 
+  // Sstc: supervisor timer uses CSR access; CLINT MMIO is unnecessary.
+  w_menvcfg(r_menvcfg() | MENVCFG_STCE);
+  w_mcounteren(7);
+  w_stimecmp(~0UL);
+
   // Allow S-mode to read, write, and execute across the physical address space.
   w_pmpaddr0(0x3fffffffffffffull);
   w_pmpcfg0(0xf);

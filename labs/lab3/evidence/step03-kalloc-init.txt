@@ -1,0 +1,5 @@
+riscv64-unknown-elf-ld: warning: /tmp/lab3-kinit-ak7ueme4/1/probe.elf has a LOAD segment with RWX permissions
+PASS: image padding=1; KINIT PASS: range, all bitmap bits, 13 reserved pages, counts, reinit
+riscv64-unknown-elf-ld: warning: /tmp/lab3-kinit-ak7ueme4/5001/probe.elf has a LOAD segment with RWX permissions
+PASS: image padding=5001; KINIT PASS: range, all bitmap bits, 13 reserved pages, counts, reinit
+PASS: initialization probes did not replace or enable the formal allocator

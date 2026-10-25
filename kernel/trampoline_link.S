@@ -1,4 +1,3 @@
-// The course trampoline declares trampsec without ELF load/execute flags.
-// Declare the section first, then include the unmodified gift source.
-    .section trampsec,"ax"
+// Lab3 v2 declares the executable section and alignment in the gift itself.
+// Keep one build entry, without duplicating the immutable course source.
 #include "trampoline.S"

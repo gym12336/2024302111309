@@ -8,7 +8,7 @@ QEMU = qemu-system-riscv64
 OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o \
        kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o \
        kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o \
-       kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o
+       kernel/kalloc.o kernel/vm_printf.o kernel/vm.o kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) -T kernel/kernel.ld -o $@ $(OBJS)
@@ -29,6 +29,7 @@ kernel/console.o: kernel/user_mem.h
 kernel/syscall.o: kernel/console.h
 kernel/plic.o: kernel/plic.h kernel/memlayout.h kernel/types.h
 kernel/main.o kernel/trap.o: kernel/uart.h kernel/plic.h
+kernel/trampoline_link.o: kernel/trampoline.S kernel/riscv.h kernel/memlayout.h
 
 %.o: %.c kernel/riscv.h kernel/course_sid.h
 	$(CC) $(CFLAGS) -Ikernel -c -o $@ $<
@@ -60,3 +61,23 @@ kernel/user_meta.h: tools/gen_user_meta.py $(addprefix user-flat/,$(UPROGS:=.bin
 	python3 tools/gen_user_meta.py $(UPROGS) > $@.tmp
 	mv $@.tmp $@
 kernel/proc.o: kernel/user_meta.h kernel/user_mem.h kernel/trapframe.h kernel/trap.h
+
+# Lab3: derive a page-aligned data boundary without editing the supplied script.
+UPROGS += badaccess memcap vmtest vmconcurrent pagedump
+user-flat/user-lab3.ld: user/user.ld
+	mkdir -p user-flat
+	python3 -c 'from pathlib import Path; s=Path("user/user.ld").read_text(); Path("$@").write_text(s.replace("  .data :", "  . = ALIGN(4096); data_start = .;\n  .data :"))'
+$(addprefix user-flat/,$(UPROGS:=.bin)): user-flat/user-lab3.ld
+# The gifted rule uses LD; this target-local wrapper selects the derived script.
+$(addprefix user-flat/,$(UPROGS:=.bin)): LD = python3 tools/link_user.py
+
+kernel/userimg.S kernel/user_meta.h: $(addprefix user-flat/,$(UPROGS:=.bin))
+
+kernel/vm_printf.o: kernel/printf.c
+
+kernel/vm.o kernel/boot_vm.o kernel/proc.o kernel/syscall.o: kernel/vm_ops.h kernel/kalloc.h
+kernel/syscall.o: kernel/vm_debug.h
+user-flat/pagedump.bin: kernel/vm_debug.h
+kernel/console.o: kernel/proc.h
+
+$(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py

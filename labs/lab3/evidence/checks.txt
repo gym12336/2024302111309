@@ -1,0 +1,142 @@
+$ make
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/start.o kernel/start.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/console.o kernel/console.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/main.o kernel/main.c
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/sh.c            -o user-flat/sh.o
+riscv64-unknown-elf-objcopy -O binary user-flat/sh.elf user-flat/sh.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/hi.c            -o user-flat/hi.o
+riscv64-unknown-elf-objcopy -O binary user-flat/hi.elf user-flat/hi.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/spin.c            -o user-flat/spin.o
+riscv64-unknown-elf-objcopy -O binary user-flat/spin.elf user-flat/spin.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/badecall.c            -o user-flat/badecall.o
+riscv64-unknown-elf-objcopy -O binary user-flat/badecall.elf user-flat/badecall.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/bufstorm.c            -o user-flat/bufstorm.o
+riscv64-unknown-elf-objcopy -O binary user-flat/bufstorm.elf user-flat/bufstorm.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/proctest.c            -o user-flat/proctest.o
+riscv64-unknown-elf-objcopy -O binary user-flat/proctest.elf user-flat/proctest.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/badaccess.c            -o user-flat/badaccess.o
+riscv64-unknown-elf-objcopy -O binary user-flat/badaccess.elf user-flat/badaccess.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/memcap.c            -o user-flat/memcap.o
+riscv64-unknown-elf-objcopy -O binary user-flat/memcap.elf user-flat/memcap.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/vmtest.c            -o user-flat/vmtest.o
+riscv64-unknown-elf-objcopy -O binary user-flat/vmtest.elf user-flat/vmtest.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/vmconcurrent.c            -o user-flat/vmconcurrent.o
+riscv64-unknown-elf-objcopy -O binary user-flat/vmconcurrent.elf user-flat/vmconcurrent.bin
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -Iuser -c user/pagedump.c            -o user-flat/pagedump.o
+riscv64-unknown-elf-objcopy -O binary user-flat/pagedump.elf user-flat/pagedump.bin
+printf '.section .rodata\n .global _uprog_table\n_uprog_table:\n' > kernel/userimg.S.tmp
+for p in sh hi spin badecall bufstorm proctest badaccess memcap vmtest vmconcurrent pagedump; do \
+  printf ' .quad _uprog_%s_start\n .quad _uprog_%s_end\n .asciz "%s"\n .balign 8\n' \
+    $p $p $p >> kernel/userimg.S.tmp; \
+  printf ' .global _uprog_%s_start\n_uprog_%s_start:\n .incbin "user-flat/%s.bin"\n .global _uprog_%s_end\n_uprog_%s_end:\n .balign 8\n' \
+    $p $p $p $p $p >> kernel/userimg.S.tmp; \
+done
+printf ' .quad 0\n .quad 0\n' >> kernel/userimg.S.tmp
+mv kernel/userimg.S.tmp kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/userimg.o kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/boot_vm.o kernel/boot_vm.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/trap.o kernel/trap.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_boot.o kernel/user_boot.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/vm.o kernel/vm.c
+python3 tools/gen_user_meta.py sh hi spin badecall bufstorm proctest badaccess memcap vmtest vmconcurrent pagedump > kernel/user_meta.h.tmp
+mv kernel/user_meta.h.tmp kernel/user_meta.h
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/proc.o kernel/proc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/syscall.o kernel/syscall.c
+riscv64-unknown-elf-ld -T kernel/kernel.ld -o kernel/kernel kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o
+exit=0
+
+$ /usr/bin/python3 tools/check_lab3_support.py
+PASS: all 18 Lab2 gifted originals are unchanged; installed copies match except the two explicit Lab3 v2 overrides
+PASS: all 7 Lab3 v2 support files and installed copies match their ZIP byte for byte
+PASS: original support/inject_uart.py is unchanged; compatibility adaptation exists only in our wrapper
+make: 'kernel/kernel' is up to date.
+PASS: riscv.h may be included twice without redefinitions
+PASS: trampoline=0x80003000, uservec=0x80003000, userret=0x8000309c; one aligned allocated/executable page
+PASS: changing trampoline.S schedules its wrapper object for rebuild
+exit=0
+
+$ /usr/bin/python3 tools/check_lab3_vm.py
+riscv64-unknown-elf-ld: warning: /tmp/lab3-vm-3xictwtw/probe.elf has a LOAD segment with RWX permissions
+PASS: image padding=5001; ALLOC PASS: descending, alignment, zero, reuse, invalid/double free
+ROLLBACK PASS: walk OOM, mapping page 513 OOM, empty branches reclaimed, counts conserved
+KINIT PASS: range, all bitmap bits, 13 reserved pages, counts, reinit
+PASS: isolated RISC-V allocator and page-table rollback tests
+exit=0
+
+$ /usr/bin/python3 tools/check_lab3_runtime.py
+PASS: badaccess
+PASS: vmtest
+PASS: proctest
+PASS: memcap
+PASS: memcap
+PASS: hi
+PASS: pagedump
+PASS: spin and sh run concurrently; sh executes hi
+PASS: Lab1 banner, page dump, guards, copies, fork/exec, repeated OOM and shell recovery
+exit=0
+
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script support/lab2-stream.txt --log labs/lab3/evidence/lab2-stream.txt
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'hi: user program running, pid=2': PASS
+EXPECT 'TEST-1 PASS: unknown syscalls all return -1': PASS
+EXPECT 'BUFSTORM lines=4 bytes=4': PASS
+EXPECT 'hi: user program running, pid=5': PASS
+EXPECT 'PROCTEST PASS:.*capacity': PASS
+EXPECT 'hi: user program running, pid=18': PASS
+log → labs/lab3/evidence/lab2-stream.txt;EXPECT 失败 0 条
+exit=0
+
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script support/lab2-long-storm.txt --log labs/lab3/evidence/lab2-long-storm.txt
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'BUFSTORM lines=4 bytes=[1-9][0-9]*': PASS
+EXPECT 'hi: user program running, pid=[0-9]+': PASS
+log → labs/lab3/evidence/lab2-long-storm.txt;EXPECT 失败 0 条
+exit=0
+
+PASS: all Lab3 acceptance checks passed

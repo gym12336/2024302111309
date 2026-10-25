@@ -85,6 +85,8 @@ kerneltrap(void)
     // Supervisor software interrupt: clear the request before returning.
     w_sip(r_sip() & ~2UL);
     kernel_softirq_count++;
+  } else if (cause == ((1UL << 63) | 5)) {
+    w_stimecmp(r_time() + 100000);
   } else if (cause == ((1UL << 63) | 9)) {
     external_interrupt();
   } else {
@@ -110,10 +112,14 @@ handle_user_trap(void)
     // ecall is always 32 bits, even when compressed instructions are enabled.
     tf->epc += 4;
     tf->a0 = syscall_dispatch(tf);
+  } else if (cause == ((1UL << 63) | 5)) {
+    w_stimecmp(r_time() + 100000);
+    proc_yield(0);
   } else if (cause == ((1UL << 63) | 9)) {
     external_interrupt(); // preserve epc and every user register
   } else {
-    stop_trap("unexpected user trap");
+    printf("user fault pid=%lu scause=%lu va=0x%lx\n", myproc()->pid, cause, r_stval());
+    proc_exit(-1);
   }
 }
 
@@ -150,6 +156,8 @@ usertrapret(uint64 user_satp)
 void
 usertrap(void)
 {
+  w_stvec((uint64)kernel_trap_entry);
+  proc_reap_deferred();
   handle_user_trap();
-  usertrapret(active_user_satp);
+  usertrapret(myproc()->pagetable ? MAKE_SATP(myproc()->pagetable) : active_user_satp);
 }

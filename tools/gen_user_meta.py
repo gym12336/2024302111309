@@ -20,7 +20,7 @@ for name in sys.argv[1:]:
             symbols[parts[2]] = int(parts[0], 16)
     memory = symbols["end"]
     size = path.with_suffix(".bin").stat().st_size
-    if entry >= size or memory < size or memory > 16 * 4096:
-        raise SystemExit(f"{name}: image does not fit the lab2 loader")
-    print(f'  {{"{name}", {entry}UL, {memory}UL}},')
+    if entry >= size or memory < size or memory > (1 << 38) - 8 * 4096:
+        raise SystemExit(f"{name}: invalid user image bounds")
+    print(f'  {{"{name}", {entry}UL, {memory}UL, {symbols["data_start"]}UL}},')
 print("};")

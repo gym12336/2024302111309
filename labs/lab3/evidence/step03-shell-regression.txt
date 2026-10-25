@@ -1,0 +1,7 @@
+PASS: formal sh PID=1; kernel_end=0x800171d8; banks start=0x80018000, 104 pages
+PASS: image VA=0, BSS zero; private frame/kernel stack; 16-byte user stack alignment; guard and supervisor mappings
+PASS: gift hi/badecall; missing exec returns to Shell; fork isolation, signed status, invalid wait/exec, reuse and full capacity
+PASS: gift bufstorm makes four stream reads, consumes/echoes exactly four paced bytes and returns to Shell
+PASS: spin prints through real user ecalls; its page table/frame/private kernel stack are selected; Shell waits; UART echoes Z
+PASS: no unexpected traps; spin is intentionally endless without timer preemption
+PASS: Lab1 startup prefix unchanged (446 bytes); transcript saved to labs/lab2/evidence/phase4-shell.txt

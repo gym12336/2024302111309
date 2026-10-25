@@ -4,32 +4,31 @@
 #include "trapframe.h"
 #include "trap.h"
 #include "user_mem.h"
+#include "vm_ops.h"
+#include "kalloc.h"
+#include "course_sid.h"
 
 #define PROCESS_SLOTS 4
-#define IMAGE_PAGES 16
-#define STACK_PAGES 2
-#define FRAME_PAGE (IMAGE_PAGES + STACK_PAGES)
-#define KSTACK_PAGE (FRAME_PAGE + 1)
-#define TABLE_PAGE (KSTACK_PAGE + 2)
-#define SLOT_PAGES (TABLE_PAGE + 5)
-#define STACK_BOTTOM ((IMAGE_PAGES + 1) * PGSIZE)
-#define STACK_TOP (STACK_BOTTOM + STACK_PAGES * PGSIZE)
-#define USER_FLAGS (PTE_V | PTE_R | PTE_W | PTE_U | (1UL << 6) | (1UL << 7))
-
 extern char kernel_end[], trampoline[], _uprog_table[];
 extern void boot_trapframe_select(uint64);
 extern void proc_exit_idle(void) __attribute__((noreturn));
 extern void printf(const char *, ...);
 
-struct image_meta { const char *name; uint64 entry; uint64 memory; };
+struct image_meta { const char *name; uint64 entry; uint64 memory; uint64 data; };
 #include "user_meta.h"
 
 static struct proc boot_process;
 static struct proc processes[PROCESS_SLOTS];
 static struct proc *current;
-static uint64 arena_base;
+
 static uint64 next_pid;
 static int managed;
+static struct proc *deferred;
+static void release_process(struct proc *p);
+void proc_reap_deferred(void)
+{
+  if (deferred) { struct proc *p = deferred; deferred = 0; release_process(p); }
+}
 
 static void clear(void *address, uint64 length)
 {
@@ -75,25 +74,23 @@ static const struct image_meta *find_image(const char *name, uint64 *start, uint
   return 0;
 }
 
-static void map_user(struct proc *p)
+static pagetable_t new_table(struct proc *p)
 {
-  uint64 *root = p->pagetable;
-  uint64 *low_l1 = root + 512;
-  uint64 *low_l0 = root + 1024;
-  uint64 *high_l1 = root + 1536;
-  uint64 *high_l0 = root + 2048;
-  clear(root, 5 * PGSIZE);
-  root[0] = PA2PTE(low_l1) | PTE_V;
-  low_l1[0] = PA2PTE(low_l0) | PTE_V;
-  for (uint64 va = 0; va < PGROUNDUP(p->image_size); va += PGSIZE)
-    low_l0[PX(0, va)] = PA2PTE(p->physical_base + va) | USER_FLAGS | PTE_X;
-  for (uint64 i = 0; i < STACK_PAGES; i++)
-    low_l0[PX(0, STACK_BOTTOM + i * PGSIZE)] =
-      PA2PTE(p->physical_base + (IMAGE_PAGES + i) * PGSIZE) | USER_FLAGS;
-  root[PX(2, TRAMPOLINE)] = PA2PTE(high_l1) | PTE_V;
-  high_l1[PX(1, TRAMPOLINE)] = PA2PTE(high_l0) | PTE_V;
-  high_l0[PX(0, TRAMPOLINE)] = PA2PTE(trampoline) | PTE_V | PTE_R | PTE_X | (1UL << 6);
-  high_l0[PX(0, TRAPFRAME)] = PA2PTE(p->frame) | PTE_V | PTE_R | PTE_W | (1UL << 6) | (1UL << 7);
+  pagetable_t table = kalloc();
+  if (!table) return 0;
+  if (mappages(table, TRAMPOLINE, PGSIZE, (uint64)trampoline, PTE_R|PTE_X) < 0 ||
+      mappages(table, TRAPFRAME, PGSIZE, (uint64)p->frame, PTE_R|PTE_W) < 0) {
+    vmfree(table, 1); return 0;
+  }
+  return table;
+}
+
+static void release_process(struct proc *p)
+{
+  vmfree(p->pagetable, 1);
+  if (p->frame) kfree(p->frame);
+  if (p->kernel_stack) kfree((void *)(p->kernel_stack-PGSIZE));
+  clear(p, sizeof(*p));
 }
 
 static struct proc *allocate_process(void)
@@ -102,14 +99,25 @@ static struct proc *allocate_process(void)
     struct proc *p = &processes[i];
     if (p->state != PROC_UNUSED) continue;
     clear(p, sizeof(*p));
-    p->physical_base = arena_base + i * SLOT_PAGES * PGSIZE;
-    clear((void *)p->physical_base, SLOT_PAGES * PGSIZE);
-    p->pagetable = (uint64 *)(p->physical_base + TABLE_PAGE * PGSIZE);
-    p->frame = (struct trapframe *)(p->physical_base + FRAME_PAGE * PGSIZE);
-    p->kernel_stack = p->physical_base + TABLE_PAGE * PGSIZE;
+    p->frame = kalloc();
+    void *stack = kalloc();
+    p->kernel_stack = stack ? (uint64)stack+PGSIZE : 0;
+    if (!p->frame || !stack || !(p->pagetable = new_table(p))) {
+      release_process(p); return 0;
+    }
     p->pid = next_pid++;
     p->state = PROC_RUNNABLE;
     return p;
+  }
+  return 0;
+}
+
+static int add_page(pagetable_t table, uint64 va, int flags)
+{
+  void *page = kalloc();
+  if (!page) return -1;
+  if (mappages(table, va, PGSIZE, (uint64)page, flags|PTE_U) < 0) {
+    kfree(page); return -1;
   }
   return 0;
 }
@@ -118,17 +126,57 @@ static int load_image(struct proc *p, const char *name)
 {
   uint64 start, size;
   const struct image_meta *meta = find_image(name, &start, &size);
-  if (!meta || meta->memory == 0 || meta->memory > IMAGE_PAGES * PGSIZE ||
-      size > meta->memory || meta->entry >= size) return -1;
-  // Reuse the fixed bank without clearing the active kernel stack.
-  clear((void *)p->physical_base, (IMAGE_PAGES + STACK_PAGES) * PGSIZE);
-  copy((void *)p->physical_base, (void *)start, size);
+  if (!meta || !meta->memory || size > meta->memory || meta->entry >= size ||
+      meta->memory > TRAPFRAME-(LAB3_GUARD_PAGES+2)*PGSIZE ||
+      meta->data % PGSIZE || meta->data > PGROUNDUP(meta->memory))
+    return -1;
+  pagetable_t table = new_table(p);
+  if (!table) return -1;
+  uint64 guard = PGROUNDUP(meta->memory), top = guard+(LAB3_GUARD_PAGES+2)*PGSIZE;
+  for (uint64 va = 0; va < top; va += PGSIZE) {
+    if (va >= guard && va < guard+LAB3_GUARD_PAGES*PGSIZE) continue;
+    int flags = va < meta->data ? PTE_R|PTE_X : PTE_R|PTE_W;
+    if (add_page(table, va, flags) < 0) { vmfree(table, 1); return -1; }
+    if (va < size) {
+      uint64 count = size-va;
+      if (count > PGSIZE) count = PGSIZE;
+      copy((void *)PTE2PA(*walk(table, va, 0)), (void *)(start+va), count);
+    }
+  }
+  pagetable_t old = p->pagetable;
+  p->pagetable = table;
   p->image_size = meta->memory;
-  map_user(p);
+  p->heap_base = p->sz = top;
+  p->guard = guard;
   clear(p->frame, sizeof(*p->frame));
   p->frame->epc = meta->entry;
-  p->frame->sp = STACK_TOP;
+  p->frame->sp = top;
+  vmfree(old, 1);
   return 0;
+}
+
+uint64 proc_sbrk(int n)
+{
+  struct proc *p = myproc();
+  uint64 old = p->sz, next;
+  if (n >= 0) {
+    if ((uint64)n > TRAPFRAME-old) return (uint64)-1;
+    next = old+(uint64)n;
+    uint64 va = PGROUNDUP(old);
+    for (; va < PGROUNDUP(next); va += PGSIZE)
+      if (add_page(p->pagetable, va, PTE_R|PTE_W) < 0) {
+        uvmunmap(p->pagetable, PGROUNDUP(old), (va-PGROUNDUP(old))/PGSIZE, 1);
+        return (uint64)-1;
+      }
+  } else {
+    uint64 shrink = -(long)n;
+    if (shrink > old-p->heap_base) return (uint64)-1;
+    next = old-shrink;
+    uvmunmap(p->pagetable, PGROUNDUP(next), (PGROUNDUP(old)-PGROUNDUP(next))/PGSIZE, 1);
+  }
+  p->sz = next;
+  sfence_vma();
+  return old;
 }
 
 static void __attribute__((noreturn)) run_process(struct proc *p)
@@ -138,6 +186,22 @@ static void __attribute__((noreturn)) run_process(struct proc *p)
   p->state = PROC_RUNNING;
   boot_trapframe_select((uint64)p->frame);
   usertrapret(MAKE_SATP(p->pagetable));
+}
+
+// All continuations are saved user frames; switch only at user trap boundaries
+// or before read has consumed anything, where the ecall can safely be restarted.
+void proc_yield(int restart_read)
+{
+  if (!managed) return;
+  struct proc *p = myproc();
+  int first = (int)(p-processes);
+  for (int n=1; n<PROCESS_SLOTS; n++) {
+    struct proc *next = &processes[(first+n)%PROCESS_SLOTS];
+    if (next->state != PROC_RUNNABLE) continue;
+    if (restart_read) p->frame->epc -= 4;
+    p->state = PROC_RUNNABLE;
+    run_process(next);
+  }
 }
 
 void proc_boot_init(void)
@@ -157,16 +221,13 @@ struct proc *myproc(void)
 void proc_shell_launch(void)
 {
   intr_off();
-  arena_base = PGROUNDUP((uint64)kernel_end);
-  if (arena_base + PROCESS_SLOTS * SLOT_PAGES * PGSIZE > PHYSTOP) {
-    printf("lab2 process banks exceed RAM\n"); proc_exit_idle();
-  }
   managed = 1;
   next_pid = 1;
   struct proc *p = allocate_process();
   if (!p || load_image(p, "sh") < 0) {
     printf("cannot load embedded sh\n"); proc_exit_idle();
   }
+  dump_pagetable(p->pagetable);
   run_process(p);
 }
 
@@ -178,9 +239,18 @@ int proc_fork(void)
   if (!child) return -1;
   child->parent_pid = parent->pid;
   child->image_size = parent->image_size;
-  copy((void *)child->physical_base, (void *)parent->physical_base,
-       (IMAGE_PAGES + STACK_PAGES) * PGSIZE);
-  map_user(child);
+  child->sz = parent->sz;
+  child->heap_base = parent->heap_base;
+  child->guard = parent->guard;
+  for (uint64 va = 0; va < parent->sz; va += PGSIZE) {
+    pte_t *pte = walk(parent->pagetable, va, 0);
+    if (!pte || !(*pte & PTE_V)) continue;
+    if (add_page(child->pagetable, va, PTE_FLAGS(*pte)) < 0) {
+      release_process(child); return -1;
+    }
+    copy((void *)PTE2PA(*walk(child->pagetable, va, 0)),
+         (void *)PTE2PA(*pte), PGSIZE);
+  }
   copy(child->frame, parent->frame, sizeof(*child->frame));
   child->frame->a0 = 0;
   return (int)child->pid;
@@ -217,7 +287,7 @@ int proc_wait(uint64 status_address)
       int status = (int)p->exit_status;
       if (status_address && user_copyout(parent->pagetable, status_address, &status, sizeof(status)) < 0) return -1;
       int pid = (int)p->pid;
-      p->state = PROC_UNUSED;
+      release_process(p);
       return pid;
     }
     if (!ready && p->state == PROC_RUNNABLE) ready = p;
@@ -242,7 +312,7 @@ void proc_exit(int status)
     int result = (int)p->pid;
     if (parent->wait_address && user_copyout(parent->pagetable, parent->wait_address, &status, sizeof(status)) < 0) result = -1;
     parent->frame->a0 = (uint64)(long)result;
-    p->state = PROC_UNUSED;
+    deferred = p;
     run_process(parent);
   }
   for (int i = 0; i < PROCESS_SLOTS; i++) {
