@@ -21,3 +21,4 @@ labs/lab2/evidence/phase4-shell.txt -text -whitespace
 /tools/docx2md.py export-ignore
 /tools/export_lab2_demo.py export-ignore
 /labs/lab3/evidence/step* export-ignore
+/labs/lab3/lab3-v2-20260929.zip -export-ignore
