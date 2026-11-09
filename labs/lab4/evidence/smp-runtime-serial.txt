@@ -1,0 +1,213 @@
+=== boot 1; qemu -smp 2 ===
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> smptest
+hi: uhser pi: urser ogram ruprognningram , runpindi=ng, pid=19
+20
+hhi:i use: ruser  progrproam grruamnn ing, pridun=ning, 2pid=1
+22
+hi: user program runnhinig:,  upsiedr= prog2ra3m
+ running, pid=24
+hi: user program running, pid=h2i5:
+ user program running, pid=26
+RESULT smp_round = 1 workers=8 free_pages=32601
+hi: huseri :p ruser prograom rungranimng,  pirdu=nning, p4i5d=
+43
+hi: user program runhninig:,  upside=r pro4gr6a
+m running, pid=47
+hi: user program running, pid=hi:48
+ user program running, pid=49
+hi: user program running, pid=50
+hi: user program running, pid=44
+RESULT smp_round = 2 workers=8 free_pages=32601
+hi: user hproig: rusear mprog runrnaingm,  rpiudn=ning6,7 
+pid=68
+hi: user program running,h ip:id =user 6pr9o
+gram running, pid=70
+hi: user program running, pid=h7i1: 
+user program running, pid=72
+hi: user program running, pid=73hi
+: user program running, pid=74
+RESULT smp_round = 3 workers=8 free_pages=32601
+RESULT smp_hart = 0 dispatches=164 user_ticks=106
+RESULT smp_hart = 1 dispatches=131 user_ticks=99
+RESULT smp_clock = ticks=123 cycles=13660056
+RESULT smp_online = 3 reclaimed=32607
+RESULT smp_stress = fork,exec,exit,wait,pause,sbrk,isolation,kill
+PASS: smptest
+sh> bench
+RESULT avg_fork_wait = 5732
+RESULT concurrent_children = 8
+PASS: bench
+sh> schedcheck
+RESULT sched_abi = self,pointers,tickets,priority,pause,zombie,wait,kill
+PASS: schedcheck
+sh> proctest
+PROCTEST PASS: fork isolation, signed status, wait errors, exec errors, slot reuse, capacity
+sh> hi
+hi: user program running, pid=260
+sh> 
+=== boot 2; qemu -smp 2 ===
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> smptest
+hi: husier :p ruosgerarm  prunrnoginrg,am r upnindi=ng, 1p9id=
+20
+hi: user prograhmi :r uunsneirng , ppriodg=ram2 1ru
+nning, pid=22
+hi: user program running, pid=2h3i:
+ user program running, pid=24
+hi: user program running, pid=25
+hi: user program running, pid=26
+RESULT smp_round = 1 workers=8 free_pages=32601
+hi: uhseri: p usreor pgrarmo grruanmn inrgu,n pniidn=g, p4i3d
+=44
+hi: user program running, pid=hi:4 u5s
+er program running, pid=46
+hi: user program running, pid=hi4: 7u
+ser program running, pid=48
+hi: user program running, pid=hi4: 9u
+ser program running, pid=50
+RESULT smp_round = 2 workers=8 free_pages=32601
+hi: ushei: rus perro gprroagmr armu nnriunngn,i npgid=, pi6d=7
+68
+hi: user program running, phiid:= use6r 9p
+rogram running, pid=70
+hih: i:u suesre r pprrooggrraamm  rruunnnniinngg,,  ppiid=d=7721
+
+hi: huseri p:r ougsrearm  prruongnrianmg ,r upnindi=ng, 7p3i
+d=74
+RESULT smp_round = 3 workers=8 free_pages=32601
+RESULT smp_hart = 0 dispatches=118 user_ticks=102
+RESULT smp_hart = 1 dispatches=176 user_ticks=99
+RESULT smp_clock = ticks=125 cycles=13828550
+RESULT smp_online = 3 reclaimed=32607
+RESULT smp_stress = fork,exec,exit,wait,pause,sbrk,isolation,kill
+PASS: smptest
+sh> alt
+ABABABABABABABABABABABABABABABAB
+alt done
+PASS: alt
+sh> vmtest
+CROSS-PAGE PASS
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.8.0. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.3.0.0.0.
+.GUARD PASS
+SHRINK PASS
+EXEC-FAIL PASS
+OOM-FORK-EXEC PASS
+UNALIGNED-SBRK PASS
+sh> hi
+hi: user program running, pid=81
+sh> memcap
+TEST-4 PASS: OOM returned error after 2034 chunks; existing alloc intact; kernel alive
+sh> hi
+hi: user program running, pid=83
+sh> 
+=== boot 3; qemu -smp 2 ===
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> smptest
+hi: usehri:  upsreorg progrraam m rrunniunnningg, pid, pi=d=19
+20
+hi:h useri :p rusoegrr am prruongnrianmg ,r upnindi=ng, p2id1=
+22
+hi: user prhogir: aums reurn npirnogg,r apmi dr=unning2, 3pi
+d=24
+hi: user program running, pid=25
+hi: user program running, pid=26
+RESULT smp_round = 1 workers=8 free_pages=32601
+hi: user program running, pid=43
+hi: userh progiram :r uunsneirng,  ppid=rogra4m 4ru
+nning, pid=45
+hi: user program running, pidh=i4: 6u
+ser program running, pid=47
+hi: user program running, pihd=i: u4se8r
+ program running, pid=49
+hi: user program running, pid=50
+RESULT smp_round = 2 workers=8 free_pages=32601
+hi: user program running, pid=67
+hi: user program running, pid=68
+hi: user program running, pid=69
+hi: user program running, pid=h7i:0 u
+ser program running, pid=71
+hi: user program running, pid=72
+hi: user program running, pid=73
+hi: user program running, pid=74
+RESULT smp_round = 3 workers=8 free_pages=32601
+RESULT smp_hart = 0 dispatches=151 user_ticks=101
+RESULT smp_hart = 1 dispatches=145 user_ticks=103
+RESULT smp_clock = ticks=124 cycles=13747746
+RESULT smp_online = 3 reclaimed=32607
+RESULT smp_stress = fork,exec,exit,wait,pause,sbrk,isolation,kill
+PASS: smptest
+sh> schedcheck
+RESULT sched_abi = self,pointers,tickets,priority,pause,zombie,wait,kill
+PASS: schedcheck
+sh> badaccess
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.8.0. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.0.
+.TEST-3a PASS: wild write killed (status=-1)
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.8.1. .s.c.a.u.s.e.=.1.3. .v.a.=.0.x.8.0.0.0.
+.TEST-3b PASS: beyond-sbrk access killed (status=-1)
+sh> pagedump
+
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87f93000 perm=----
+L1 va=0x0 pa=0x87f92000 perm=----
+LEAF va=0x0 pa=0x87f94000 perm=r-xu
+LEAF va=0x1000 pa=0x87f91000 perm=rw-u
+LEAF va=0x4000 pa=0x87f90000 perm=rw-u
+LEAF va=0x5000 pa=0x87f8f000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87f96000 perm=----
+L1 va=0x3fffe00000 pa=0x87f95000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fab000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> bench
+RESULT avg_fork_wait = 5854
+RESULT concurrent_children = 8
+PASS: bench
+sh> hi
+hi: user program running, pid=192
+sh> 

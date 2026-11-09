@@ -1,0 +1,9 @@
+$ QEMU -smp 1; independent_boots=1
+PASS: boot 1 -smp 1: one Lab1 banner and interactive shell
+PASS: boot 1 -smp 1: smptest and return to shell; online=1; hart0 dispatches=242 user_ticks=112; clock=126ticks/13899207cycles; reclaimed=32607
+PASS: boot 1 -smp 1: bench and return to shell
+PASS: boot 1 -smp 1: schedcheck and return to shell
+PASS: boot 1 -smp 1: proctest and return to shell
+PASS: boot 1 -smp 1: hi and return to shell
+PASS: boot 1 -smp 1: complete concurrent workload and shell recovery
+PASS: all Lab4 SMP checks (1 boots, 1 harts)

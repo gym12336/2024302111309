@@ -22,17 +22,18 @@ def main():
         # Keep the Lab2 README intact; install this version under a distinct name.
         "support/tests/README-tests.md": "support/tests/README-lab3-tests.md",
     }
-    # Lab4 officially replaces these Lab2 interfaces. Our sole extension is
-    # syscall 26 for ID9 observation; accept exactly its documented suffix.
+    # Lab4 officially replaces these Lab2 interfaces. Accept only the exact
+    # documented priority(26) and per-hart observation(28) extension suffixes.
     lab4_interfaces = {
         "kernel/syscall.h": (
-            "gifts/kernel/syscall.h", b"#define SYS_setpriority 26\n"),
+            "gifts/kernel/syscall.h", b"#define SYS_setpriority 26\n#define SYS_smpstat 28\n"),
         "user/user.h": (
             "gifts/user/user.h",
             b"\n// ID9: 0=low, 1=high. Return the previous base priority, or -1.\n"
-            b"int setpriority(int priority);\n"),
+            b"int setpriority(int priority);\n"
+            b"struct smp_stats;\nint smpstat(struct smp_stats *stats);\n"),
         "user/usys.pl": (
-            "gifts/user/usys.pl", b'entry("setpriority");\n'),
+            "gifts/user/usys.pl", b'entry("setpriority");\nentry("smpstat");\n'),
     }
     with zipfile.ZipFile(lab3 / "lab3-v2-20260929.zip") as update, \
          zipfile.ZipFile(root / "labs/lab2/lab2.zip") as archive, \
@@ -79,7 +80,7 @@ def main():
     print(f"PASS: all {count} Lab2 gifted originals are unchanged; installed copies use only the explicit Lab3/Lab4 overlays")
     print(f"PASS: all {len(lab3_files)} Lab3 v2 support files and installed copies match their ZIP byte for byte")
     print(f"PASS: all {len(lab4_originals)} Lab4 v2 originals match their ZIP byte for byte")
-    print("PASS: Lab4 interfaces match official bytes plus the exact allowed setpriority(26) extensions")
+    print("PASS: Lab4 interfaces match official bytes plus exact setpriority(26)/smpstat(28) extensions")
     print("PASS: Lab4 swtch, specification, README and all five tests in user/support match official bytes")
     print("PASS: original support/inject_uart.py is unchanged; compatibility adaptation exists only in our wrapper")
 

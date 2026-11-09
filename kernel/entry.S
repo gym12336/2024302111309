@@ -1,4 +1,5 @@
 #include "course_sid.h"
+#include "param.h"
 
     .section .text
     .globl _entry
@@ -11,14 +12,16 @@ _entry:
     la t0, m_trap_vector
     csrw mtvec, t0
 
-    # This lab boots on hart 0 only. Other harts wait here forever.
+    # Each hart gets its own boot stack and keeps its ID in kernel tp.
     csrr t0, mhartid
-    bnez t0, park
-  # Save this hart's ID while mhartid is accessible in machine mode.
-  mv tp, t0
-
-    # The stack grows downward, so start at the first byte above its storage.
-    la sp, boot_stack_top
+    li t1, NCPU
+    bgeu t0, t1, park
+    mv tp, t0
+    la sp, boot_stack
+    addi t0, t0, 1
+    li t1, LAB1_STACK_KB * 1024
+    mul t0, t0, t1
+    add sp, sp, t0
 
     call start
 
@@ -35,5 +38,5 @@ m_trap_vector:
     .section .bss
     .balign 16
 boot_stack:
-    .space LAB1_STACK_KB * 1024
+    .space NCPU * LAB1_STACK_KB * 1024
 boot_stack_top:

@@ -12,7 +12,7 @@ LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
 L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
 L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
 LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
-LEAF va=0x3ffffff000 pa=0x80003000 perm=r-x-
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
 DUMP-PAGETABLE end
 sh> bench
 F.A.U.L.T.:. .w.a.i.t. .c.o.n.d.i.t.i.o.n. .u.n.l.o.c.k.e.d. .b.e.f.o.r.e. .S.L.E.E.P.I.N.G.

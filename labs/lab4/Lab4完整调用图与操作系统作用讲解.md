@@ -2,7 +2,7 @@
 
 依据：[实验4 进程上下文切换与调度策略 V3](lab4-实验说明书-学生版-V3.docx)和[增量包能力目标](能力目标与接口约定.md)。本文沿用 [Lab3 讲解](../lab3/Lab3完整调用图与操作系统作用讲解.md)的阅读主线：**实验要求什么 → 为什么需要 → 哪些文件实现 → 每一步做什么 → 验收如何解释。**
 
-本实验在 Lab3 的独立页表之上，补齐能保存内核执行现场的上下文切换、每进程锁、休眠唤醒和时钟抢占，再实现学号 `2024302111309` 对应的 **ID 9：两级优先级与每等待 8 tick 老化一级**。实现与验收范围为单核；双核是课程选做挑战。
+本实验在 Lab3 的独立页表之上，补齐能保存内核执行现场的上下文切换、每进程锁、休眠唤醒和时钟抢占，再实现学号 `2024302111309` 对应的 **ID 9：两级优先级与每等待 8 tick 老化一级**。同一个内核镜像支持单核和双核；默认单核保留策略基线，双核进一步检查两个调度器并发使用进程表、物理内存和外设的正确性。双核实现集中见第十节。
 
 ## 一、实验究竟要改变什么
 
@@ -16,6 +16,7 @@ Lab3 主要回答“一个进程可以访问哪些内存”。Lab4 进一步回�
 2. 两个只做计算、不主动休眠的进程，也能被时钟轮流打断。
 3. 等事件的进程真正进入休眠；事件到达后被唤醒，且不会错过通知。
 4. 高优先级优先运行，同时让长期等待的低优先级进程最终得到 CPU。
+5. `CPUS=2`时两个hart各自在独立的启动栈和CPU结构上调度，安全共享进程表，且都实际执行用户负载。
 
 ### 1.1 哪些是机制，哪些是策略
 
@@ -39,7 +40,7 @@ Lab3 主要回答“一个进程可以访问哪些内存”。Lab4 进一步回�
 
 有一个必须处理的编号冲突：Lab3 本地扩展 `dump_pagetable` 原用 23，Lab4 课程规定 `schedstat` 必须是 23。因此 [vm_debug.h](../../kernel/vm_debug.h)将页表扩展迁到 **27**，并重新编译调用它的 `pagedump`。课程 23、24、25 的接口含义保持课程规定。
 
-本地新增 `setpriority` 使用 **26**，仅用于设置本人的两级基本优先级。它追加在课程接口之后，没有改动 `gifts/` 内的原件。
+本地新增 `setpriority` 使用 **26**，用于设置本人的两级基本优先级；双核观测 `smpstat`使用 **28**。它们追加在课程接口之后，没有改动 `gifts/` 内的原件。
 
 ### 2.2 学号参数不能只看旧注释
 
@@ -56,7 +57,7 @@ LAB2_TICK        = 2
 
 `trap.c` 每次时钟中断重新设置 `stimecmp = r_time() + 100000`。QEMU virt 的 `time` 为 10MHz，因此理想情况下相邻中断约 10ms；中断屏蔽及处理开销会影响实际间隔，不能把它当成精密墙上时钟。
 
-**一个 tick 指一次实际处理的时钟中断。** 全局 `ticks` 在用户态和内核态时钟中断中均推进；进程的 `cpu_ticks` 与 `last_slice_ticks` 只在从用户态进入的时钟分支累加。`LAB2_TICK=2` 表示累计两个用户态时钟 tick 后调用 `yield()`。
+**每个hart都有自己的时钟中断。** 全局 `ticks`只由hart0处理的用户态或内核态时钟中断推进；进程的 `cpu_ticks` 与 `last_slice_ticks`在它当前运行的hart上、仅从用户态进入的时钟分支累加。`LAB2_TICK=2` 表示累计两个用户态时钟 tick 后调用 `yield()`。这样双核不会使pause期限和8tick老化速度翻倍。
 
 这使纯计算进程通常约每 20ms 发生一次调度机会。执行系统调用时命中的内核时钟会唤醒等待者、推进老化，但不增加该进程的用户 CPU 采样计数，也不在内核时钟分支抢占。
 
@@ -106,7 +107,7 @@ ret：跳到刚恢复的 ra
 
 ### 3.4 cpu 和 proc 各保存什么
 
-`struct cpu` 保存本 CPU 的调度器 `context`、当前进程 `proc`、关中断嵌套计数 `noff` 和进入最外层关中断区之前的状态 `intena`。
+`struct cpu` 保存本 CPU 的调度器 `context`、当前进程 `proc`、关中断嵌套计数 `noff` 和进入最外层关中断区之前的状态 `intena`；另外累计本hart的分发次数和用户时钟采样，供双核观测使用。
 
 `struct proc` 保存进程锁、状态、父指针、休眠通道、内核 `context`、页表、trapframe、内核栈，以及调度统计和优先级字段。进程表使用 [param.h](../../kernel/param.h)的 `NPROC=64`，不再把容量写死为 4。
 
@@ -136,7 +137,7 @@ swtch(&p->context, &c->context)
 
 `noff==1`意味着进入切换前只有进程锁这一层关中断临界区。若还带着控制台锁、ticks 锁或 wait 锁切走，另一个进程可能必须拿这把锁才能唤醒当前进程，系统就可能停住。
 
-`intena` 需要跟随这条被暂停的内核执行流保存。CPU 切走后会执行别的进程，其他执行流会改变 `c->intena`；不能把它们的值误用到恢复的 A 上。
+`intena` 需要跟随这条被暂停的内核执行流保存。CPU 切走后会执行别的进程，其他执行流会改变 `c->intena`；不能把它们的值误用到恢复的 A 上。A可能在另一hart恢复，因此`sched()`返回后重新调用`mycpu()`，不能继续使用切出前缓存的CPU指针。
 
 ### 3.7 进程锁必须跨过 swtch
 
@@ -179,7 +180,7 @@ context.sp = 私有内核栈顶
 
 ### 4.1 调度器自己的栈在哪里
 
-`main → proc_shell_launch → scheduler` 一直使用启动栈。`swtch()`把这条调度器执行流保存在 `c->context`，而每个进程另有一页私有内核栈。
+`entry.S`按hart编号划分独立8KB启动栈，`main → scheduler`一直使用本hart的启动栈；hart0先通过`proc_shell_init()`创建shell。`swtch()`把本hart调度器执行流保存在自己的 `c->context`，每个进程另有一页私有内核栈。
 
 调度器栈不属于被切走的 A。A 退出后会被父进程回收内核栈；若调度器仍在 A 栈上运行，回收就等于拆掉调度器脚下的内存。
 
@@ -187,18 +188,19 @@ context.sp = 私有内核栈顶
 
 ```text
 短暂开中断，让待处理的 UART/时钟能够推进
- → 关中断，扫描就绪进程
+ → 关中断，获取 scheduler_lock，扫描就绪进程
  → 按优先级和 rr_idx 选 best
  → 获取 best.lock
  → RUNNABLE → RUNNING，记录 c->proc
- → 清零 last_slice_ticks，更新 TRAPFRAME 别名
+ → 清零 last_slice_ticks，更新本hart分发计数
+ → 释放 scheduler_lock，仅保留 best.lock
  → swtch(cpu.context, best.context)
  → 进程让出、休眠或退出后，swtch 返回
  → 清空 c->proc，释放 best.lock
  → 下一轮
 ```
 
-没有就绪进程时执行 `wfi` 等待中断。扫描前有开中断机会，避免所有进程都睡着时，唤醒它们的时钟或串口事件一直无法处理。扫描阶段关中断，也使本单核实现选择候选和实际切入之间不会被另一个本核事件改变就绪状态。
+没有就绪进程时先释放选择锁，再执行 `wfi` 等待中断。扫描前有开中断机会，避免所有进程都睡着时，唤醒它们的时钟或串口事件一直无法处理。关中断只保护当前hart，无法阻止另一核访问进程表；双核的选择与预留由`scheduler_lock`和各进程锁共同保护。
 
 `scheduler()`从 `swtch()`返回时，进程已由自己的 `yield/sleep/exit` 改好了状态。调度器不能把所有返回者一律改成 `RUNNABLE`，否则会把正在等事件的进程或僵尸错误地复活。
 
@@ -213,12 +215,12 @@ trampoline.S:uservec
   ↓
 trap.c:usertrap → handle_user_trap
   保存 tf->epc
-  proc_clock：全局 ticks++、唤醒定时等待、执行老化
+  proc_clock：仅hart0推进全局 ticks、唤醒定时等待、执行老化
   proc_user_tick：cpu_ticks++、last_slice_ticks++
   ↓ 若达到 LAB2_TICK=2
 yield → sched → swtch(A.context, cpu.context)
   ↓
-scheduler：选择 B，更新固定 TRAPFRAME 别名
+scheduler：锁内选择并预留 B，放选择锁后切入
 swtch(cpu.context, B.context)
   ↓
 B 从此前的 sched 返回，或第一次进入 forkret
@@ -316,7 +318,7 @@ sched：以后若不再产生事件，A 永久睡眠
       sleep(&ticks, &tickslock)
  → 满足 n tick 后解锁并返回 0
 
-每次时钟中断
+hart0每次时钟中断
  → proc_clock → ticks++ → wakeup(&ticks)
 ```
 
@@ -401,6 +403,7 @@ stateDiagram-v2
 | `setickets(n)` | 25 | n≥1 记录并返回 0，非法值 -1；ID9 不按票数选人 |
 | `setpriority(n)` | 26 | n=0低、1高；返回旧的基本优先级，非法值 -1 |
 | `dump_pagetable()`本地扩展 | 27 | 保留 Lab3 页表观测，避开课程 23 号 |
+| `smpstat(&stats)`本地扩展 | 28 | 用户输出指针先验证；返回在线掩码、每hart分发/用户采样及空闲页快照 |
 
 用户调用经过 [usys.pl](../../user/usys.pl)生成的 `ecall` 桩，`a7`携带调用号，参数在 `a0/a1/a2`中，经 [syscall.c](../../kernel/syscall.c)分发到 `proc_*`函数。返回值最终写回 frame 的 `a0`，由 `userret`交还用户程序。
 
@@ -457,21 +460,21 @@ fork 不继承父亲已经获得的 CPU 计数，也不继承临时老化提升�
 同级按上次位置之后的环形顺序
 ```
 
-没有另外维护链式就绪队列；每次扫描 `NPROC`个槽，结构直观，适合本实验规模。当前两步选择依赖单核及扫描期间关中断，不应据此宣称已实现双核安全。
+没有另外维护链式就绪队列；每次扫描 `NPROC`个槽，结构直观，适合本实验规模。`rr_idx`由两个调度器共享，整个扫描、游标更新和RUNNING预留都在`scheduler_lock`内；标记后释放选择锁，另一核即可选择剩余RUNNABLE进程。每个进程自己的锁仍跨过swtch保护栈交接。
 
 ### 6.6 为什么不是固定 1:1 或固定 4:1
 
 ID9 要求高优先级优先、低优先级最终获得服务，没有规定精确份额。实际采样会受时间片长度、父进程观察时机、就绪顺序、内核中断和系统调用开销影响。
 
-验收应看到：高低竞争时高进程获得更多用户 CPU tick；低进程初期等待，老化后可以获得 CPU；同级竞争时两者都持续前进。将某次观测比例当作永远精确成立的理论常数是不正确的。
+单核策略验收应看到：高低竞争时高进程获得更多用户 CPU tick；低进程初期等待，老化后可以获得 CPU；同级竞争时两者都持续前进。将某次观测比例当作永远精确成立的理论常数是不正确的。双核能够同时运行两个孩子，两个孩子不再争用同一颗CPU，原单核份额与最短等待边界不适用。
 
 ## 七、Lab3 的页表与内存安全怎样继续参与
 
-### 7.1 每次切入必须匹配正确的 frame
+### 7.1 同一TRAPFRAME地址怎样对应不同进程
 
-用户页表都把 `TRAPFRAME`映射到各自 frame。当前内核还保留一个固定高地址别名，[boot_vm.c](../../kernel/boot_vm.c)的 `boot_trapframe_select()`会修改这项内核映射。
+用户页表都把 `TRAPFRAME`映射到各自 frame。内核C通过 `myproc()->frame`的RAM地址访问正确的物理页；共享内核页表的高TRAPFRAME项固定指向旧boot探针页，正常调度不修改它，原`boot_trapframe_select()`已删除。
 
-调度器切入 B 前，必须把内核固定别名也改到 B.frame 并刷新 TLB。C 的陷入处理使用 `myproc()->frame`物理地址保存局部引用；最后 `userret`仍按约定从固定地址恢复用户寄存器。只切换 `c->proc`而遗漏这项映射，可能把 A 的寄存器交给 B。
+关键是跳板访问frame时使用哪张页表：`uservec`在切换到内核satp之前，就已通过A的用户页表保存寄存器并读出内核入口字段；`userret`先安装B的用户satp，再通过TRAPFRAME恢复B的寄存器。因此两核可同时访问“同一虚拟地址、不同物理frame”，不需要修改共享内核映射。若两核仍轮流改写共享TRAPFRAME项，单核时可用的别名选择就会变成互相覆盖的竞态。
 
 ### 7.2 fork 与 exec 的内存职责保留
 
@@ -486,6 +489,8 @@ fork 仍逐页复制用户页，保留权限和 guard 空洞，让父子数据�
 `pagedump`直接检查这些地址映射是否仍正确；`badaccess`验证非法用户访问只终止出错进程，系统仍能继续运行并返回 shell。
 
 ## 八、自写用例怎样证明策略正确
+
+本节的份额和等待边界固定使用`-smp 1`；双核用例见第十节。
 
 ### 8.1 alt 证明时钟能抢占纯计算
 
@@ -505,7 +510,7 @@ fork 仍逐页复制用户页，保留权限和 guard 空洞，让父子数据�
 
 关键在于：第二次用户时钟到达时，内核已经先调用 `yield()`切走它。低孩子要执行下一次采样、发现自己完成了这两个 CPU tick，必须先等满就绪等待阈值、通过老化再次得到调度。因此它最后经退出码报告的耗时，同时包含**先前两个用户 CPU tick、之后至少 8 个就绪等待 tick，以及采样和调度边界**。
 
-程序要求低孩子先于持续计算的高孩子完成，并要求耗时为 10～18 tick。最终实测为 **11 tick**，符合该路径；不能把它写成“老化计数恰好是11”，也不能要求每次正好等于2+8。若改成轮转，低孩子会过早恢复；若禁用老化，它会等到高孩子结束才能继续。这两种错误策略还用隔离对照验证。
+程序要求低孩子先于持续计算的高孩子完成，并要求耗时为 10～18 tick。当前版本单核复验实测为 **11 tick**，符合该路径；不能把它写成“老化计数恰好是11”，也不能要求每次正好等于2+8。若改成轮转，低孩子会过早恢复；若禁用老化，它会等到高孩子结束才能继续。这两种错误策略还用隔离对照验证。
 
 ### 8.4 补充用例　同级轮转与接口边界
 
@@ -525,7 +530,7 @@ python3 tools/run_lab4_checks.py
 
 | 证据 | 用途 |
 |---|---|
-| [build.txt](evidence/build.txt) | 查看编译与链接结果 |
+| [smp-build.txt](evidence/smp-build.txt) | 本次单双核版本清理重建的编译与链接结果 |
 | [checks.txt](evidence/checks.txt) | 查看本次各项检查、命令和退出码 |
 | [runtime-serial.txt](evidence/runtime-serial.txt) | 对照原始终端输出，包括策略观测值 |
 | [uart-regression.txt](evidence/uart-regression.txt) | 查看课程注入器的 UART 回归输出 |
@@ -535,24 +540,27 @@ python3 tools/run_lab4_checks.py
 | [support-checks.txt](evidence/support-checks.txt) | 课程预置件完整性、跳板对齐与构建依赖 |
 | [lost-wakeup.txt](evidence/lost-wakeup.txt) | 临时错误锁序的确定性交错复现 |
 | [policy-controls.txt](evidence/policy-controls.txt) | 轮转和禁用老化两个错误策略的对照实验 |
+| [smp-regression-summary.txt](evidence/smp-regression-summary.txt) | 双核改造后的支撑件、分配器、VM及反例复验汇总 |
+| [smp-checks.txt](evidence/smp-checks.txt)、[双核串口](evidence/smp-runtime-serial.txt) | 三次独立双核启动、每核用户负载、并发与回归 |
+| [单核兼容记录](evidence/smp-single-compat/smp-checks.txt) | 同一镜像在-smp 1下运行smptest与生命周期回归 |
 
 课程 `bench`实际源码执行 100 轮 fork/exit/wait，再并发创建并回收 8 个混合负载孩子，要求两行 `RESULT`与 `PASS: bench`。说明书正文中的“16轮”“bench: PASS”等文字与赠送测试代码略有差异，验收记录按真实源码与真实输出解释。
 
 `lottery_test`和 `stride_test`已接入构建，但它们的份额断言分别适用 ID3～5、ID6～7；本人的 ID9 策略使用 `priority_test`验收。运行它们并不等于要求 ID9 模拟其他策略。
 
-最终清理后重建及主验收的实际结果为：
+当前版本清理重建后的单核复验结果为：
 
 ```text
-RESULT avg_fork_wait = 5171
+RESULT avg_fork_wait = 6264
 RESULT concurrent_children = 8
 PASS: bench
 RESULT priority_cpu = 48:12
 RESULT aging_two_cpu_ticks_elapsed = 11 ticks
-RESULT equal_priority_cpu = 22:22
+RESULT equal_priority_cpu = 24:24
 PASS: priority ID9
 ```
 
-`5171`的单位是硬件time计数/轮，不是tick；48:12是这次采样窗口的增量，高级占优且低级没有饥饿；22:22说明同级轮转，两者都推进。`alt`交错、`schedcheck`、6条课程UART EXPECT、完整Lab3运行回归、旧probe以及分配器/页表回滚均通过。重跑时允许具体计数变化。
+`6264`的单位是硬件time计数/轮，不是tick；48:12是这次采样窗口的增量，高级占优且低级没有饥饿；24:24说明同级轮转，两者都推进。`alt`交错、`schedcheck`、6条课程UART EXPECT、完整Lab3运行回归、旧probe以及分配器/页表回滚均通过。重跑时允许具体计数变化。
 
 ### 9.1 在隔离版本中真实复现丢失唤醒
 
@@ -589,9 +597,100 @@ python3 tools/check_lab3_vm.py
 
 临时故障和对照实验的 `FAIL`是预期拒绝结果；正式主验收日志中的 `FAIL`才表示交付实现未通过。
 
-## 十、现场演示与常见追问
+## 十、双核挑战怎样与单核共存
 
-现场可以按以下顺序运行：
+### 10.1 两个调度器与一份共享进程表
+
+单核、双核使用相同源码和内核镜像，只改变QEMU启动的硬件线程数。`NCPU=8`是结构数组和启动栈的容量，`CPUS`才决定这次QEMU实际启动的核数；本次验证范围为1核和2核。Makefile设置`CPUS ?= 1`，将`-smp $(CPUS)`追加到QEMU变量，课程qemu配方保持原样。
+
+```bash
+make qemu CPUS=1
+make qemu CPUS=2
+```
+
+```mermaid
+flowchart TD
+    E[entry 每hart独立启动栈和tp] --> H{hart编号}
+    H -->|0| G[全局初始化及创建首个shell]
+    G --> P[release发布started]
+    H -->|1| W[acquire等待started]
+    W --> L[安装本核satp stvec PLIC 定时器]
+    P --> S0[hart0 scheduler和私有cpu结构]
+    L --> S1[hart1 scheduler和私有cpu结构]
+    S0 --> K[选择锁内扫描并预留进程]
+    S1 --> K
+    K --> R[标RUNNING 放选择锁 仍持进程锁]
+    R --> U[本hart切入被选进程的内核栈及用户态]
+```
+
+hart0把分配器、内核页表、锁、设备和shell全部准备好，才原子release发布started。副核acquire观察到该值后，才能依赖这些共享数据；仅有普通volatile标志不足以表达完整的发布顺序。副核只做本核硬件初始化，不重复清空分配器或进程表，也不重印Lab1横幅。
+
+### 10.2 说明书七项清单对应代码
+
+| 清单 | 本工程实现 | 解决的问题 |
+|---|---|---|
+| 分核启动栈及放行副核 | [entry.S](../../kernel/entry.S)，`sp=boot_stack+(hart+1)*8192`，核号超过NCPU才停驻 | 两核不覆写同一启动栈 |
+| tp在用户往返和内核中断中正确 | [start.c](../../kernel/start.c)写mhartid；[trap.c](../../kernel/trap.c)写当前kernel_hartid；[kernel_trap_entry.S](../../kernel/kernel_trap_entry.S)不从旧栈恢复tp | 迁移后继续索引当前hart的cpu结构 |
+| 全局初始化与每核初始化屏障 | [main.c](../../kernel/main.c)的原子started；[boot_vm.c](../../kernel/boot_vm.c)分离建表与本核安装satp | 副核不读取半成品，也不重复全局初始化 |
+| 锁归属核 | [spinlock.c](../../kernel/spinlock.c)的`locked && cpu==mycpu()` | 别核正常持锁不被误判为本核递归 |
+| PLIC上下文和全局时间职责 | [plic.c](../../kernel/plic.c)按hart设置；[proc.c](../../kernel/proc.c)仅hart0推进ticks/aging | UART RX单生产者，睡眠及老化时钟不翻倍 |
+| QEMU实际启动双核 | [Makefile](../../Makefile)默认CPUS=1并向QEMU传-smp | CPUS=2产生真实第二颗hart |
+| 双核测试口径 | [smptest.c](../../user/smptest.c)、[双核脚本](../../tools/run_lab4_smp_checks.py)；策略比例仍单核 | 同时运行与单CPU份额的验证各有明确判据 |
+
+内核现在只在用户时钟到达时间片时抢占。kerneltrap不调用yield；同时汇编主动不恢复旧tp，避免未来允许内核抢占后把旧核号带到新核。用户的tp仍由用户trapframe完整保存和恢复，不能把用户tp当作可信核编号。
+
+### 10.3 为什么关中断之外还要加锁
+
+hart0关中断只阻止hart0的中断处理程序，hart1仍可同时修改共享数据。选择过程因此增加`scheduler_lock`：扫描候选、更新rr_idx、锁住获胜者并将其标成RUNNING全部串行；标记完成后释放选择锁，再swtch。另一核看到RUNNING便不能重复选择同一进程。两个CPU可以并行执行不同进程，选择临界区本身仍是串行的。
+
+选择锁不跨swtch，跨切换的仍只有当前进程锁，所以`sched()`的noff==1断言继续成立。进程在hart0暂停，可能由hart1恢复；被恢复的是进程的栈、ra和s寄存器，当前hart的tp不属于进程context。`sched()`重新获取mycpu恢复intena，用户返回再更新kernel_hartid，形成完整的迁移协议。
+
+物理页分配也必须串行修改位图与计数：[kalloc.c](../../kernel/kalloc.c)先在锁内预留一页，再解锁清零；释放页在填充完成后才置为空闲。两核能够处理不同的页面，但不会同时得到同一页。UART发送的THRE检查、THR写入和发送计数由独立output_lock保护；它按字节串行，不保证多个进程的整行printf连续。
+
+### 10.4 用什么证明确实两个核在工作
+
+本地`smpstat`经用户指针检查和copyout提供：
+
+- `online_mask`：每个scheduler上线时置自己的位，1表示hart0，3表示hart0与hart1。
+- `dispatches[hart]`：该物理核分发进程的累计次数。
+- `user_ticks[hart]`：该物理核实际从用户态处理的时钟采样总数。
+- `free_pages`：物理分配器持锁取得的空闲页数。
+
+掩码为3还不能独自证明第二核执行了用户程序。smptest比较前后快照，要求两个核的dispatches和user_ticks都增加，并检查未上线核的计数仍为0。计数按物理hart累计，进程迁移并不会把历史值移到另一核。
+
+smptest每轮创建8个工作进程，执行并发sbrk、嵌套fork、父子写入不同数据、失败exec和成功exec hi、pause/唤醒、负退出码wait及坏指针后重试，共3轮。每轮等全部孩子回收后检查空闲页恢复到同一基线；最终释放父进程堆页后检查初始资源全部归还，另行kill睡眠孩子并及时回收。
+
+程序还比较硬件time与全局uptime：正常每全局tick约100000个time计数，允许80000～120000的观测边界。若两核都推进ticks，比例接近50000，会被拒绝。这是确认“两个核各自有定时器”和“全局时间只计一次”同时成立的运行证据。
+
+### 10.5 双核复现与结果解释
+
+```bash
+python3 tools/run_lab4_smp_checks.py
+```
+
+默认脚本启动三次独立的`-smp 2`QEMU。每次核对Lab1横幅只出现一次、运行smptest，再分批覆盖bench、alt、schedcheck、proctest、vmtest、memcap、badaccess、pagedump和hi，每条命令结束都必须恢复shell。证据在[smp-checks.txt](evidence/smp-checks.txt)、[smp-runtime-serial.txt](evidence/smp-runtime-serial.txt)，日志的PASS/FAIL和原始串口才是实测结论。
+
+当前三次独立双核启动全部通过，online_mask均为3。具体统计为：
+
+| 启动 | hart0 分发/用户采样 | hart1 分发/用户采样 | 全局ticks/硬件time增量 |
+|---|---:|---:|---:|
+| 1 | 164 / 106 | 131 / 99 | 123 / 13660056 |
+| 2 | 118 / 102 | 176 / 99 | 125 / 13828550 |
+| 3 | 151 / 101 | 145 / 103 | 124 / 13747746 |
+
+每次smptest内部三轮并发工作后空闲页均回到32601；最后释放父进程6页堆空间后，恢复初始32607页。两核都有正的用户时钟采样增量，说明第二核确实执行了用户代码；输出中的分发次数、采样数和耗时不是要求未来重跑完全复现的常数。
+
+单核主验收仍运行`python3 tools/run_lab4_checks.py`。smptest单核兼容也已通过：掩码1，仅hart0有统计增量，242次分发、112个用户采样，最终同样恢复32607页。独立记录在[单核兼容证据](evidence/smp-single-compat/smp-checks.txt)，复现命令为：
+
+```bash
+python3 tools/run_lab4_smp_checks.py --cpus 1 --rounds 1 --evidence-dir labs/lab4/evidence/smp-single-compat
+```
+
+只有两个计算孩子时，双核可让它们同时执行，因此不要求复现单核高低CPU比例，也不要求低孩子一定等待8tick才继续。老化规则仍存在；是否需要等待取决于当时是否有更多就绪竞争者。有限压力测试给出运行证据；每核状态、锁顺序和状态交接协议负责解释并发正确性。
+
+## 十一、现场演示与常见追问
+
+单核现场可以按以下顺序运行：
 
 ```text
 hi
@@ -617,6 +716,8 @@ priority_test
 
 **问：低优先级是否永远只运行一个时间片？** 每次老化提升保证一次调度机会；若没有更高竞争者，即使回到低级也可继续被选中。不能把“提升后回 base”理解为强制停机。
 
-**问：为什么当前没有双核验收结论？** 启动路径仍只放行 hart0，固定内核 frame 别名、内存分配器和选择阶段也按单核假设使用。`struct cpu`是必要基础，但单有这个结构还不足以完成双核挑战。
+**问：双核和单核会冲突吗？** 共用同一内核镜像，通过CPUS=1或2选择运行。每核状态独立、共享状态加锁和启动同步在单核同样成立；测试按核数解释，单核策略份额不要求在双核复现。
+
+**问：怎样排除“只启动了一个核却称为双核”？** 直接检查QEMU的-smp 2参数、smpstat掩码3，以及两个hart均为正的用户时钟采样增量；再核对并发压力与资源回收，不只看结构体或启动横幅。
 
 阅读源码时，先沿 `usertrap → proc_user_tick → yield → sched → swtch → scheduler`看一次抢占，再沿 `proc_pause → sleep → proc_clock → wakeup`看一次阻塞，最后看 `proc_wait/proc_exit`的资源交接，能把四个阶段连成一条实际运行路径。

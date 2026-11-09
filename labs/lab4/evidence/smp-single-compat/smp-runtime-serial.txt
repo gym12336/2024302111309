@@ -1,0 +1,62 @@
+=== boot 1; qemu -smp 1 ===
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> smptest
+hi: user program running, pid=19
+hi: user program running, pid=20
+hi: user program running, pid=21
+hi: user program running, pid=22
+hi: user program running, pid=23
+hi: user program running, pid=24
+hi: user program running, pid=25
+hi: user program running, pid=26
+RESULT smp_round = 1 workers=8 free_pages=32601
+hi: user program running, pid=43
+hi: user program running, pid=44
+hi: user program running, pid=45
+hi: user program running, pid=46
+hi: user program running, pid=47
+hi: user program running, pid=48
+hi: user program running, pid=49
+hi: user program running, pid=50
+RESULT smp_round = 2 workers=8 free_pages=32601
+hi: user program running, pid=67
+hi: user program running, pid=68
+hi: user program running, pid=69
+hi: user program running, pid=70
+hi: user program running, pid=71
+hi: user program running, pid=72
+hi: user program running, pid=73
+hi: user program running, pid=74
+RESULT smp_round = 3 workers=8 free_pages=32601
+RESULT smp_hart = 0 dispatches=242 user_ticks=112
+RESULT smp_clock = ticks=126 cycles=13899207
+RESULT smp_online = 1 reclaimed=32607
+RESULT smp_stress = fork,exec,exit,wait,pause,sbrk,isolation,kill
+PASS: smptest
+sh> bench
+RESULT avg_fork_wait = 5504
+RESULT concurrent_children = 8
+PASS: bench
+sh> schedcheck
+RESULT sched_abi = self,pointers,tickets,priority,pause,zombie,wait,kill
+PASS: schedcheck
+sh> proctest
+PROCTEST PASS: fork isolation, signed status, wait errors, exec errors, slot reuse, capacity
+sh> hi
+hi: user program running, pid=260
+sh> 

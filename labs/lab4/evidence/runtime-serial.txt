@@ -12,7 +12,7 @@ LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
 L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
 L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
 LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
-LEAF va=0x3ffffff000 pa=0x80003000 perm=r-x-
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
 DUMP-PAGETABLE end
 sh> hi
 hi: user program running, pid=2
@@ -33,14 +33,14 @@ LEAF va=0x5000 pa=0x87f8f000 perm=rw-u
 L2 va=0x3fc0000000 pa=0x87f96000 perm=----
 L1 va=0x3fffe00000 pa=0x87f95000 perm=----
 LEAF va=0x3fffffe000 pa=0x87fab000 perm=rw--
-LEAF va=0x3ffffff000 pa=0x80003000 perm=r-x-
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
 DUMP-PAGETABLE end
 sh> bench
-RESULT avg_fork_wait = 5171
+RESULT avg_fork_wait = 6264
 RESULT concurrent_children = 8
 PASS: bench
 sh> alt
-AAAAABBBBBBBBAAAAAAAAABBBBBBBBAA
+AAAAABBBBBBBBAAAAAAAABBBBBBBBAAA
 alt done
 PASS: alt
 sh> schedcheck
@@ -49,6 +49,6 @@ PASS: schedcheck
 sh> priority_test
 RESULT priority_cpu = 48:12
 RESULT aging_two_cpu_ticks_elapsed = 11 ticks
-RESULT equal_priority_cpu = 22:22
+RESULT equal_priority_cpu = 24:24
 PASS: priority ID9
 sh> 

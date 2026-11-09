@@ -5,9 +5,9 @@ Only policy selection changes; swtch, locks, timer, sleep and wait are shared.
 
 CONTROL round-robin
 Mutation: scheduler selects the first RUNNABLE process after rr_idx; ignores priority.
-$ riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c /tmp/lab4-policy-controls-ipaqbfts/round-robin.c -o /tmp/lab4-policy-controls-ipaqbfts/round-robin.o
-$ riscv64-unknown-elf-ld -T kernel/kernel.ld -o /tmp/lab4-policy-controls-ipaqbfts/round-robin.elf kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o /tmp/lab4-policy-controls-ipaqbfts/round-robin.o kernel/syscall.o kernel/user_mem.o kernel/plic.o kernel/swtch.o kernel/spinlock.o
-riscv64-unknown-elf-ld: warning: /tmp/lab4-policy-controls-ipaqbfts/round-robin.elf has a LOAD segment with RWX permissions
+$ riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c /tmp/lab4-policy-controls-bsldpzqi/round-robin.c -o /tmp/lab4-policy-controls-bsldpzqi/round-robin.o
+$ riscv64-unknown-elf-ld -T kernel/kernel.ld -o /tmp/lab4-policy-controls-bsldpzqi/round-robin.elf kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o /tmp/lab4-policy-controls-bsldpzqi/round-robin.o kernel/syscall.o kernel/user_mem.o kernel/plic.o kernel/swtch.o kernel/spinlock.o
+riscv64-unknown-elf-ld: warning: /tmp/lab4-policy-controls-bsldpzqi/round-robin.elf has a LOAD segment with RWX permissions
 O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
 .S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
 .S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
@@ -22,14 +22,14 @@ LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
 L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
 L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
 LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
-LEAF va=0x3ffffff000 pa=0x80003000 perm=r-x-
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
 DUMP-PAGETABLE end
 sh> bench
-RESULT avg_fork_wait = 5319
+RESULT avg_fork_wait = 5368
 RESULT concurrent_children = 8
 PASS: bench
 sh> alt
-AAAAABBBBBBBBAAAAAAAABBBBBBBBAAA
+AAAAAAABBBBBBBBBAAAAAAAABBBBBBBA
 alt done
 PASS: alt
 sh> priority_test
@@ -40,9 +40,9 @@ EXPECTED REJECTION: FAIL: priority priority boundary missing
 
 CONTROL no-aging
 Mutation: disable proc_clock READY-wait aging; keep priority selection.
-$ riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c /tmp/lab4-policy-controls-ipaqbfts/no-aging.c -o /tmp/lab4-policy-controls-ipaqbfts/no-aging.o
-$ riscv64-unknown-elf-ld -T kernel/kernel.ld -o /tmp/lab4-policy-controls-ipaqbfts/no-aging.elf kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o /tmp/lab4-policy-controls-ipaqbfts/no-aging.o kernel/syscall.o kernel/user_mem.o kernel/plic.o kernel/swtch.o kernel/spinlock.o
-riscv64-unknown-elf-ld: warning: /tmp/lab4-policy-controls-ipaqbfts/no-aging.elf has a LOAD segment with RWX permissions
+$ riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c /tmp/lab4-policy-controls-bsldpzqi/no-aging.c -o /tmp/lab4-policy-controls-bsldpzqi/no-aging.o
+$ riscv64-unknown-elf-ld -T kernel/kernel.ld -o /tmp/lab4-policy-controls-bsldpzqi/no-aging.elf kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o /tmp/lab4-policy-controls-bsldpzqi/no-aging.o kernel/syscall.o kernel/user_mem.o kernel/plic.o kernel/swtch.o kernel/spinlock.o
+riscv64-unknown-elf-ld: warning: /tmp/lab4-policy-controls-bsldpzqi/no-aging.elf has a LOAD segment with RWX permissions
 O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
 .S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
 .S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
@@ -57,7 +57,7 @@ LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
 L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
 L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
 LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
-LEAF va=0x3ffffff000 pa=0x80003000 perm=r-x-
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
 DUMP-PAGETABLE end
 sh> priority_test
 RESULT priority_cpu = 60:0
@@ -65,7 +65,7 @@ FAIL: priority low priority starved
 sh> 
 EXPECTED REJECTION: FAIL: priority low priority starved
 
-UNCHANGED SHA256 kernel/proc.c bb1c5be9d30c7e70158570160e52f1c83805c4dc7772c21812c2014d8705d566
-UNCHANGED SHA256 kernel/proc.o 84950cc8ce655adfb3220457e5ad527458e226ed56aaf0041f5ad75547c60877
-UNCHANGED SHA256 kernel/kernel adbae711508c65a3324d887965d9df2f584cc2550ae7e6abfe9b79fceff6f1ef
+UNCHANGED SHA256 kernel/proc.c a5fdd6b5d62f6c18632dfe9b3ed1936aea87d327ff8b91ed91c68e4a60d38164
+UNCHANGED SHA256 kernel/proc.o a6daf432cc42bc382d9a1e2a475b30188e0fd97e5923e8cd64393b2a29927067
+UNCHANGED SHA256 kernel/kernel 3314b2177d0bfb9544e5052e11ce0a6a328d5240f6bc748ce84968a55f333e52
 PASS: RR mechanism works; ID9 observation rejects RR and starvation without aging.

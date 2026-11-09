@@ -1,0 +1,49 @@
+$ tools/check_lab3_support.py
+PASS: all 18 Lab2 gifted originals are unchanged; installed copies use only the explicit Lab3/Lab4 overlays
+PASS: all 7 Lab3 v2 support files and installed copies match their ZIP byte for byte
+PASS: all 14 Lab4 v2 originals match their ZIP byte for byte
+PASS: Lab4 interfaces match official bytes plus exact setpriority(26)/smpstat(28) extensions
+PASS: Lab4 swtch, specification, README and all five tests in user/support match official bytes
+PASS: original support/inject_uart.py is unchanged; compatibility adaptation exists only in our wrapper
+make: 'kernel/kernel' is up to date.
+PASS: riscv.h may be included twice without redefinitions
+PASS: trampoline=0x80004000, uservec=0x80004000, userret=0x8000409c; one aligned allocated/executable page
+PASS: changing trampoline.S schedules its wrapper object for rebuild
+exit=0
+
+$ tools/check_lab3_vm.py
+PASS: image padding=5001; ALLOC PASS: descending, alignment, zero, reuse, invalid/double free
+ROLLBACK PASS: walk OOM, mapping page 513 OOM, empty branches reclaimed, counts conserved
+KINIT PASS: range, all bitmap bits, 13 reserved pages, counts, reinit
+PASS: isolated RISC-V allocator and page-table rollback tests
+riscv64-unknown-elf-ld: warning: /tmp/lab3-vm-oqeklg7g/probe.elf has a LOAD segment with RWX permissions
+exit=0
+
+$ tools/check_lab4_vm_regression.py
+PASS: badaccess
+PASS: vmtest
+PASS: proctest
+PASS: memcap
+PASS: memcap
+PASS: hi
+PASS: pagedump
+PASS: spin and sh run concurrently; sh executes hi
+PASS: Lab1 banner, page dump, guards, copies, fork/exec, repeated OOM and shell recovery
+exit=0
+
+$ tools/check_lab4_lost_wakeup.py
+EXPECTED FAILURE REPRODUCED: bench blocked in first fork/wait round.
+Mutation: release(condition lock), delay, forced yield, acquire(p->lock).
+The forced yield controls the interleaving on a kernel that only preempts user mode.
+Formal proc.c and kernel/kernel were never modified.
+riscv64-unknown-elf-ld: warning: /tmp/lab4-lost-wakeup-pdjp9nn3/broken.elf has a LOAD segment with RWX permissions
+exit=0
+
+$ tools/check_lab4_policy_controls.py
+PASS: RR control bench mechanism
+PASS: RR control timer preemption and alternating children
+PASS: priority_test rejects round-robin control
+PASS: priority_test rejects no-aging control
+PASS: all policy controls; formal source/object/kernel hashes unchanged
+exit=0
+

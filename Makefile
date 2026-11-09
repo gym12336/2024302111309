@@ -4,6 +4,8 @@ LD   = riscv64-unknown-elf-ld
 CFLAGS = -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding \
          -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie
 QEMU = qemu-system-riscv64
+CPUS ?= 1
+QEMU += -smp $(CPUS)
 
 OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o \
        kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o \
@@ -85,9 +87,13 @@ $(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py
 
 # Lab4 additions; keep the course qemu/clean recipes and supplied rules intact.
 UPROGS += bench lottery_test stride_test
-UPROGS += alt priority_test schedcheck
+UPROGS += alt priority_test schedcheck smptest
 UFLAGS += -DSID=2024302111309UL
 $(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py user/common.h user/common.c user-flat/user-lab3.ld
 $(addprefix user-flat/,$(UPROGS:=.bin)): LD = python3 tools/link_user.py
 kernel/userimg.S kernel/user_meta.h: $(addprefix user-flat/,$(UPROGS:=.bin))
 kernel/proc.o kernel/trap.o kernel/console.o kernel/main.o kernel/syscall.o kernel/spinlock.o kernel/user_boot.o: kernel/proc.h kernel/spinlock.h
+kernel/kalloc.o kernel/console.o: kernel/spinlock.h
+kernel/entry.o: kernel/param.h kernel/course_sid.h
+kernel/proc.o: kernel/smp_stats.h kernel/param.h
+user-flat/smptest.bin: kernel/smp_stats.h kernel/param.h

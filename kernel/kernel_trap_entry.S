@@ -41,7 +41,7 @@ kernel_trap_entry:
     call kerneltrap
     ld ra, 0(sp)
     ld gp, 16(sp)
-    ld tp, 24(sp)
+    # Kernel tp identifies this hart; never restore a potentially old hart ID.
     ld t0, 32(sp)
     ld t1, 40(sp)
     ld t2, 48(sp)

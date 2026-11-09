@@ -22,6 +22,7 @@ static struct {
   uint64 e; // end of all stored bytes, including an unfinished line
   uint64 dropped;
 } input;
+static struct spinlock output_lock;
 
 void
 console_input(int c)
@@ -83,7 +84,7 @@ console_read(uint64 *pagetable, uint64 destination, uint64 length)
     uint8 byte = (uint8)c;
     if (user_copyout(pagetable, destination + done, &byte, 1) < 0) {
       release(&input.lock);
-      return -1; // Current single-task mappings cannot change during the copy.
+      return -1; // Each process alone owns the writable user mapping.
     }
     done++;
 #if LAB2_BUF_SEMANTICS == 0
@@ -115,6 +116,7 @@ void
 uart_init(void)
 {
   initlock(&input.lock, "console");
+  initlock(&output_lock, "uart-tx");
   // Clear DLAB before disabling interrupts: offset 1 must mean IER.
   *UART_REG(UART_LCR) = 3;
   *UART_REG(UART_IER) = 0;
@@ -162,6 +164,7 @@ throttle_if_needed(void)
 void
 uartputc_sync(int c)
 {
+  acquire(&output_lock);
   while ((*UART_REG(UART_LSR) & UART_LSR_THRE) == 0)
     ;
 
@@ -171,6 +174,7 @@ uartputc_sync(int c)
 
   transmitted_bytes++;
   throttle_if_needed();
+  release(&output_lock);
 }
 
 void

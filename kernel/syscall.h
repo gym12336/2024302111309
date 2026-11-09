@@ -25,3 +25,4 @@
 #define SYS_time_rdtime 24
 #define SYS_setickets  25
 #define SYS_setpriority 26
+#define SYS_smpstat 28

@@ -9,10 +9,9 @@
 
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
-static uint64 active_user_satp;
 static volatile uint64 kernel_softirq_count;
 
-// Legacy probe stack. Shell processes use their bank's private kernel stack.
+// Only the isolated hart0 boot probe uses this fallback stack.
 static uint8 trap_stack[2 * PGSIZE] __attribute__((aligned(16)));
 
 static uint64
@@ -25,6 +24,8 @@ kernel_stack_top(void)
 void
 trap_init(void)
 {
+  w_stvec((uint64)kernel_trap_entry);
+  if (r_tp() != 0) return; // Do not overwrite the shared legacy probe frame.
   struct trapframe *tf = (struct trapframe *)TRAPFRAME;
   uint8 *bytes = (uint8 *)tf;
   for (uint64 i = 0; i < sizeof(*tf); i++)
@@ -35,7 +36,6 @@ trap_init(void)
   tf->kernel_sp = kernel_stack_top();
   tf->kernel_trap = (uint64)usertrap;
   tf->kernel_hartid = r_tp();
-  w_stvec((uint64)kernel_trap_entry);
   // epc and user registers will be set when the first user task is created.
 }
 
@@ -150,8 +150,6 @@ prepare_return(void)
 void
 usertrapret(uint64 user_satp)
 {
-  // The first user launch supplies this; subsequent traps return to that map.
-  active_user_satp = user_satp;
   prepare_return();
   uint64 entry = TRAMPOLINE + ((uint64)userret - (uint64)trampoline);
   ((void (*)(uint64))entry)(user_satp);
@@ -163,5 +161,5 @@ usertrap(void)
 {
   w_stvec((uint64)kernel_trap_entry);
   handle_user_trap();
-  usertrapret(myproc()->pagetable ? MAKE_SATP(myproc()->pagetable) : active_user_satp);
+  usertrapret(MAKE_SATP(myproc()->pagetable));
 }

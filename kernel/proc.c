@@ -8,9 +8,9 @@
 #include "kalloc.h"
 #include "course_sid.h"
 #include "param.h"
+#include "smp_stats.h"
 
 extern char kernel_end[], trampoline[], _uprog_table[];
-extern void boot_trapframe_select(uint64);
 extern void proc_exit_idle(void) __attribute__((noreturn));
 extern void printf(const char *, ...);
 
@@ -21,8 +21,9 @@ static struct proc boot_process;
 static struct proc processes[NPROC];
 static struct cpu cpus[NCPU];
 static struct proc *initproc;
-static struct spinlock pid_lock, wait_lock, tickslock;
+static struct spinlock pid_lock, wait_lock, tickslock, scheduler_lock;
 static uint64 ticks;
+static uint64 online_mask;
 static int initialized;
 static int rr_idx = -1;
 extern void swtch(struct context *, struct context *);
@@ -199,7 +200,7 @@ static void ready(struct proc *p)
 
 struct cpu *mycpu(void)
 {
-  return &cpus[r_tp()]; // Kernel tp is restored by uservec; single-hart baseline.
+  return &cpus[r_tp()]; // Call with interrupts disabled; uservec restores hart tp.
 }
 
 struct proc *myproc(void)
@@ -217,6 +218,7 @@ void proc_boot_init(void)
   initlock(&pid_lock, "pid");
   initlock(&wait_lock, "wait");
   initlock(&tickslock, "ticks");
+  initlock(&scheduler_lock, "scheduler");
   for (int i = 0; i < NPROC; i++) initlock(&processes[i].lock, "proc");
   initlock(&boot_process.lock, "boot");
   boot_process.pid = 1;
@@ -280,11 +282,13 @@ void scheduler(void)
 {
   struct cpu *c = mycpu();
   c->proc = 0;
+  __atomic_fetch_or(&online_mask, 1UL << r_tp(), __ATOMIC_RELEASE);
   for (;;) {
-    // Give pending UART/timer interrupts an opportunity, then scan atomically
-    // with respect to this hart's interrupts. WFI also wakes for pending IRQs.
+    // Interrupts deliver wakeups on this hart; the selection lock serializes
+    // the shared cursor and reservation against the other scheduler.
     intr_on();
     intr_off();
+    acquire(&scheduler_lock);
     struct proc *best = 0;
     int chosen = -1, best_priority = -1;
     for (int n = 1; n <= NPROC; n++) {
@@ -299,15 +303,21 @@ void scheduler(void)
       }
       release(&p->lock);
     }
-    if (!best) { asm volatile("wfi"); continue; }
+    if (!best) {
+      release(&scheduler_lock);
+      asm volatile("wfi");
+      continue;
+    }
     acquire(&best->lock);
+    if (best->state != PROC_RUNNABLE) panic("scheduler reservation");
     rr_idx = chosen;
     best->state = PROC_RUNNING;
     best->ready_ticks = 0;
     best->priority = best->base_priority; // An aging boost buys one dispatch.
     best->last_slice_ticks = 0;
     c->proc = best;
-    boot_trapframe_select((uint64)best->frame);
+    __atomic_fetch_add(&c->dispatches, 1, __ATOMIC_RELAXED);
+    release(&scheduler_lock); // sched() must see only p->lock, even on SMP.
     swtch(&c->context, &best->context);
     c->proc = 0;
     release(&best->lock);
@@ -321,7 +331,7 @@ static void forkret(void)
   usertrapret(MAKE_SATP(p->pagetable));
 }
 
-void proc_shell_launch(void)
+void proc_shell_init(void)
 {
   managed = 1;
   struct proc *p = allocate_process();
@@ -330,7 +340,12 @@ void proc_shell_launch(void)
   dump_pagetable(p->pagetable);
   ready(p);
   release(&p->lock);
-  scheduler(); // Runs on the boot stack, independent of every process stack.
+}
+
+void proc_shell_launch(void)
+{
+  proc_shell_init();
+  scheduler();
 }
 
 int proc_fork(void)
@@ -442,6 +457,7 @@ void proc_exit(int status)
 
 void proc_clock(void)
 {
+  if (r_tp() != 0) return; // Global time/aging advance once, not once per hart.
   acquire(&tickslock);
   ticks++;
   wakeup(&ticks);
@@ -465,6 +481,7 @@ void proc_user_tick(void)
   acquire(&p->lock);
   p->cpu_ticks++;
   p->last_slice_ticks++;
+  __atomic_fetch_add(&mycpu()->user_ticks, 1, __ATOMIC_RELAXED);
   int expired = p->last_slice_ticks >= LAB2_TICK;
   release(&p->lock);
   if (expired) yield();
@@ -561,4 +578,21 @@ int proc_setpriority(int priority)
   p->ready_ticks = 0;
   release(&p->lock);
   return old;
+}
+
+int proc_smpstat(uint64 address)
+{
+  struct proc *caller = myproc();
+  if (!user_writable(caller->pagetable, address, sizeof(struct smp_stats))) return -1;
+  struct smp_stats stats;
+  clear(&stats, sizeof(stats));
+  stats.online_mask = __atomic_load_n(&online_mask, __ATOMIC_ACQUIRE);
+  for (int i = 0; i < NCPU; i++) {
+    stats.dispatches[i] = __atomic_load_n(&cpus[i].dispatches, __ATOMIC_RELAXED);
+    stats.user_ticks[i] = __atomic_load_n(&cpus[i].user_ticks, __ATOMIC_RELAXED);
+  }
+  struct kalloc_stats memory;
+  if (kalloc_get_stats(&memory) < 0) return -1;
+  stats.free_pages = memory.free_pages;
+  return user_copyout(caller->pagetable, address, &stats, sizeof(stats));
 }

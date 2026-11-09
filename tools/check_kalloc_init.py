@@ -10,6 +10,13 @@ import time
 
 PROBE = r'''
 #include "kalloc.c"
+#include "spinlock.c"
+
+// Exercise the real lock implementation with this isolated probe's one CPU.
+// Its fake CPU has the same noff/intena contract as the full kernel; the probe
+// does not link the scheduler or substitute unlocked allocator operations.
+static struct cpu probe_cpu;
+struct cpu *mycpu(void) { return &probe_cpu; }
 
 static void emit(const char *text)
 {
@@ -18,6 +25,12 @@ static void emit(const char *text)
     while (!(uart[5] & (1 << 5))) {}
     uart[0] = *text++;
   }
+}
+
+void printf(const char *format, ...)
+{
+  (void)format;
+  emit("KINIT FAIL: spinlock panic\n");
 }
 
 static void require(int condition)

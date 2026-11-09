@@ -6,6 +6,7 @@ extern void main(void);
 void
 start(void)
 {
+  w_tp(r_mhartid());
   // Tell mret to lower the privilege level from M-mode to S-mode.
   uint64 status = r_mstatus();
   status &= ~MSTATUS_MPP_MASK;

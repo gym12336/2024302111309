@@ -1,0 +1,41 @@
+rm -f kernel/*.o kernel/kernel
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/entry.o kernel/entry.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/start.o kernel/start.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/console.o kernel/console.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/printf.o kernel/printf.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/main.o kernel/main.c
+mkdir -p user-flat
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -DSID=2024302111309UL -Iuser -c user/ulib.c   -o user-flat/ulib.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -DSID=2024302111309UL -Iuser -c user/printf.c -o user-flat/printf.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -DSID=2024302111309UL -Iuser -c user/usys.S   -o user-flat/usys.o
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -I. -msmall-data-limit=0 -mno-relax -DSID=2024302111309UL -Iuser -c user/smptest.c            -o user-flat/smptest.o
+riscv64-unknown-elf-objcopy -O binary user-flat/smptest.elf user-flat/smptest.bin
+printf '.section .rodata\n .global _uprog_table\n_uprog_table:\n' > kernel/userimg.S.tmp
+for p in sh hi spin badecall bufstorm proctest badaccess memcap vmtest vmconcurrent pagedump bench lottery_test stride_test alt priority_test schedcheck smptest; do \
+  printf ' .quad _uprog_%s_start\n .quad _uprog_%s_end\n .asciz "%s"\n .balign 8\n' \
+    $p $p $p >> kernel/userimg.S.tmp; \
+  printf ' .global _uprog_%s_start\n_uprog_%s_start:\n .incbin "user-flat/%s.bin"\n .global _uprog_%s_end\n_uprog_%s_end:\n .balign 8\n' \
+    $p $p $p $p $p >> kernel/userimg.S.tmp; \
+done
+printf ' .quad 0\n .quad 0\n' >> kernel/userimg.S.tmp
+mv kernel/userimg.S.tmp kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/userimg.o kernel/userimg.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/trampoline_link.o kernel/trampoline_link.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/boot_vm.o kernel/boot_vm.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/trap.o kernel/trap.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/kernel_trap_entry.o kernel/kernel_trap_entry.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_boot.o kernel/user_boot.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_probe.o kernel/user_probe.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/kalloc.o kernel/kalloc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/vm_printf.o kernel/vm_printf.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/vm.o kernel/vm.c
+python3 tools/gen_user_meta.py sh hi spin badecall bufstorm proctest badaccess memcap vmtest vmconcurrent pagedump bench lottery_test stride_test alt priority_test schedcheck smptest > kernel/user_meta.h.tmp
+mv kernel/user_meta.h.tmp kernel/user_meta.h
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/proc.o kernel/proc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/syscall.o kernel/syscall.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/user_mem.o kernel/user_mem.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/plic.o kernel/plic.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/swtch.o kernel/swtch.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -std=gnu99 -mcmodel=medany -ffreestanding -nostdlib -fno-common -ggdb -march=rv64gc -fno-stack-protector -fno-pie -Ikernel -c -o kernel/spinlock.o kernel/spinlock.c
+riscv64-unknown-elf-ld -T kernel/kernel.ld -o kernel/kernel kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/main.o kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o kernel/kalloc.o kernel/vm_printf.o kernel/vm.o kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o kernel/swtch.o kernel/spinlock.o
+riscv64-unknown-elf-ld: warning: kernel/kernel has a LOAD segment with RWX permissions

@@ -4,7 +4,8 @@
 #include "vm_ops.h"
 #include "kalloc.h"
 
-// Kernel Sv39 map: device MMIO, all RAM and shared high trampoline/frame aliases.
+// Immutable shared kernel map. The high frame alias is only for the boot probe;
+// normal kernel C accesses each p->frame through the RAM identity mapping.
 static uint64 root[512] __attribute__((aligned(PGSIZE)));
 static uint64 top_l1[512] __attribute__((aligned(PGSIZE)));
 static uint64 top_l0[512] __attribute__((aligned(PGSIZE)));
@@ -19,15 +20,6 @@ boot_trapframe_pa(void)
   return (uint64)boot_trapframe;
 }
 
-void
-boot_trapframe_select(uint64 physical_address)
-{
-  // Select the running process's frame in the kernel's fixed high alias.
-  top_l0[PX(0, TRAPFRAME)] = PA2PTE(physical_address) | PTE_V | PTE_R | PTE_W |
-                           (1UL << 6) | (1UL << 7);
-  asm volatile("sfence.vma zero, zero" ::: "memory");
-}
-
 #define PTE_A (1L << 6)
 #define PTE_D (1L << 7)
 
@@ -36,6 +28,14 @@ stop_boot(void)
 {
   for (;;)
     asm volatile("wfi");
+}
+
+void
+boot_vm_hart_init(void)
+{
+  sfence_vma();
+  w_satp(MAKE_SATP(root));
+  sfence_vma();
 }
 
 void
@@ -56,9 +56,7 @@ boot_vm_init(void)
   top_l0[PX(0, TRAMPOLINE)] = PA2PTE(trampoline) | PTE_V | PTE_R | PTE_X | PTE_A;
   top_l0[PX(0, TRAPFRAME)] = PA2PTE(boot_trapframe) | PTE_V | PTE_R | PTE_W | PTE_A | PTE_D;
 
-  sfence_vma();
-  w_satp(MAKE_SATP(root));
-  asm volatile("sfence.vma zero, zero" ::: "memory");
+  boot_vm_hart_init();
 
   // Exercise both aliases now, before any user process depends on them.
   if (*(volatile uint32 *)TRAMPOLINE != *(volatile uint32 *)trampoline)

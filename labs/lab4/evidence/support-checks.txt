@@ -1,10 +1,10 @@
 PASS: all 18 Lab2 gifted originals are unchanged; installed copies use only the explicit Lab3/Lab4 overlays
 PASS: all 7 Lab3 v2 support files and installed copies match their ZIP byte for byte
 PASS: all 14 Lab4 v2 originals match their ZIP byte for byte
-PASS: Lab4 interfaces match official bytes plus the exact allowed setpriority(26) extensions
+PASS: Lab4 interfaces match official bytes plus exact setpriority(26)/smpstat(28) extensions
 PASS: Lab4 swtch, specification, README and all five tests in user/support match official bytes
 PASS: original support/inject_uart.py is unchanged; compatibility adaptation exists only in our wrapper
 make: 'kernel/kernel' is up to date.
 PASS: riscv.h may be included twice without redefinitions
-PASS: trampoline=0x80003000, uservec=0x80003000, userret=0x8000309c; one aligned allocated/executable page
+PASS: trampoline=0x80004000, uservec=0x80004000, userret=0x8000409c; one aligned allocated/executable page
 PASS: changing trampoline.S schedules its wrapper object for rebuild

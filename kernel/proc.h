@@ -23,6 +23,7 @@ struct cpu {
   struct context context;
   struct proc *proc;
   int noff, intena;
+  uint64 dispatches, user_ticks;
 };
 enum proc_state { PROC_UNUSED, PROC_USED, PROC_RUNNABLE, PROC_RUNNING,
                   PROC_SLEEPING, PROC_ZOMBIE };
@@ -45,6 +46,8 @@ struct proc *myproc(void);
 void proc_boot_init(void);
 void proc_exit(int) __attribute__((noreturn));
 void proc_shell_launch(void) __attribute__((noreturn));
+void proc_shell_init(void);
+int proc_smpstat(uint64);
 void scheduler(void) __attribute__((noreturn));
 void sched(void);
 void yield(void);

@@ -1,6 +1,6 @@
-riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
-riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
-riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-apmixifb/probe.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-apmixifb/probe.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-apmixifb/probe.elf has a LOAD segment with RWX permissions
 PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
 PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
 PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output

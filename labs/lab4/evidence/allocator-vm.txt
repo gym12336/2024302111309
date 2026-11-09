@@ -1,5 +1,5 @@
-riscv64-unknown-elf-ld: warning: /tmp/lab3-vm-v1l0yn6a/probe.elf has a LOAD segment with RWX permissions
 PASS: image padding=5001; ALLOC PASS: descending, alignment, zero, reuse, invalid/double free
 ROLLBACK PASS: walk OOM, mapping page 513 OOM, empty branches reclaimed, counts conserved
 KINIT PASS: range, all bitmap bits, 13 reserved pages, counts, reinit
 PASS: isolated RISC-V allocator and page-table rollback tests
+riscv64-unknown-elf-ld: warning: /tmp/lab3-vm-oqeklg7g/probe.elf has a LOAD segment with RWX permissions

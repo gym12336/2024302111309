@@ -80,6 +80,8 @@ syscall_dispatch(struct trapframe *tf)
     return (uint64)(long)proc_setickets((int)argraw(tf, 0));
   case SYS_setpriority:
     return (uint64)(long)proc_setpriority((int)argraw(tf, 0));
+  case SYS_smpstat:
+    return (uint64)(long)proc_smpstat(argraw(tf, 0));
   case SYS_dump_pagetable:
     dump_pagetable(myproc()->pagetable);
     return 0;

@@ -2,6 +2,7 @@
 #include "riscv.h"
 #include "memlayout.h"
 #include "course_sid.h"
+#include "spinlock.h"
 
 #define RAM_PAGES ((PHYSTOP - KERNBASE) / PGSIZE)
 #define BITS_PER_WORD 64UL
@@ -17,6 +18,7 @@ _Static_assert(LAB3_ALLOC_ORDER == 1,
 extern char kernel_end[];
 
 static struct {
+  struct spinlock lock;
   // One bit per physical RAM page: 1=free, 0=unavailable or allocated.
   uint64 free_bitmap[BITMAP_WORDS];
   uint64 first_pa;
@@ -30,6 +32,7 @@ static struct {
 int
 kinit(void)
 {
+  // Hart 0 alone initializes RAM before the boot publication barrier.
   // A repeated call must never mark already allocated pages free again.
   if (kmem.initialized)
     return -1;
@@ -40,6 +43,8 @@ kinit(void)
   uint64 first = PGROUNDUP(image_end);
   if (first > limit)
     return -1;
+
+  initlock(&kmem.lock, "kmem");
 
   for (uint64 i = 0; i < BITMAP_WORDS; i++)
     kmem.free_bitmap[i] = 0;
@@ -64,16 +69,20 @@ kalloc_get_stats(struct kalloc_stats *out)
 {
   if (!kmem.initialized || !out)
     return -1;
+  acquire(&kmem.lock);
   out->first_pa = kmem.first_pa;
   out->limit_pa = kmem.limit_pa;
   out->total_pages = kmem.total_pages;
   out->free_pages = kmem.free_pages;
+  release(&kmem.lock);
   return 0;
 }
 
 void *kalloc(void)
 {
-  if (!kmem.initialized || !kmem.free_pages) return 0;
+  if (!kmem.initialized) return 0;
+  acquire(&kmem.lock);
+  if (!kmem.free_pages) { release(&kmem.lock); return 0; }
   while (!kmem.free_bitmap[kmem.search_word]) kmem.search_word--;
   uint64 bits = kmem.free_bitmap[kmem.search_word];
   int bit = 63;
@@ -81,6 +90,9 @@ void *kalloc(void)
   kmem.free_bitmap[kmem.search_word] &= ~(1UL << bit);
   kmem.free_pages--;
   uint64 pa = KERNBASE + (kmem.search_word * 64 + bit) * PGSIZE;
+  // The cleared bitmap bit reserves this page exclusively. Clearing its bytes
+  // after unlocking lets another hart allocate a different page in parallel.
+  release(&kmem.lock);
   for (uint64 i = 0; i < PGSIZE; i++) ((uint8 *)pa)[i] = 0;
   return (void *)pa;
 }
@@ -92,10 +104,13 @@ int kfree(void *page)
     return -1;
   uint64 index = (pa - KERNBASE) / PGSIZE, word = index / 64;
   uint64 mask = 1UL << (index % 64);
-  if (kmem.free_bitmap[word] & mask) return -1;
+  acquire(&kmem.lock);
+  if (kmem.free_bitmap[word] & mask) { release(&kmem.lock); return -1; }
+  // Fill before publishing the free bit, while duplicate frees are excluded.
   for (uint64 i = 0; i < PGSIZE; i++) ((uint8 *)page)[i] = 0xA5;
   kmem.free_bitmap[word] |= mask;
   kmem.free_pages++;
   if (word > kmem.search_word) kmem.search_word = word;
+  release(&kmem.lock);
   return 0;
 }

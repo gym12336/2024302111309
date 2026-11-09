@@ -56,3 +56,5 @@ unsigned long time_rdtime(void);
 int setickets(int tickets);
 // ID9: 0=low, 1=high. Return the previous base priority, or -1.
 int setpriority(int priority);
+struct smp_stats;
+int smpstat(struct smp_stats *stats);

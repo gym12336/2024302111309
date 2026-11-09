@@ -1,0 +1,25 @@
+$ QEMU -smp 2; independent_boots=3
+PASS: boot 1 -smp 2: one Lab1 banner and interactive shell
+PASS: boot 1 -smp 2: smptest and return to shell; online=3; hart0 dispatches=164 user_ticks=106, hart1 dispatches=131 user_ticks=99; clock=123ticks/13660056cycles; reclaimed=32607
+PASS: boot 1 -smp 2: bench and return to shell
+PASS: boot 1 -smp 2: schedcheck and return to shell
+PASS: boot 1 -smp 2: proctest and return to shell
+PASS: boot 1 -smp 2: hi and return to shell
+PASS: boot 1 -smp 2: complete concurrent workload and shell recovery
+PASS: boot 2 -smp 2: one Lab1 banner and interactive shell
+PASS: boot 2 -smp 2: smptest and return to shell; online=3; hart0 dispatches=118 user_ticks=102, hart1 dispatches=176 user_ticks=99; clock=125ticks/13828550cycles; reclaimed=32607
+PASS: boot 2 -smp 2: alt and return to shell
+PASS: boot 2 -smp 2: vmtest and return to shell
+PASS: boot 2 -smp 2: hi and return to shell
+PASS: boot 2 -smp 2: memcap and return to shell
+PASS: boot 2 -smp 2: hi and return to shell
+PASS: boot 2 -smp 2: complete concurrent workload and shell recovery
+PASS: boot 3 -smp 2: one Lab1 banner and interactive shell
+PASS: boot 3 -smp 2: smptest and return to shell; online=3; hart0 dispatches=151 user_ticks=101, hart1 dispatches=145 user_ticks=103; clock=124ticks/13747746cycles; reclaimed=32607
+PASS: boot 3 -smp 2: schedcheck and return to shell
+PASS: boot 3 -smp 2: badaccess and return to shell
+PASS: boot 3 -smp 2: pagedump and return to shell
+PASS: boot 3 -smp 2: bench and return to shell
+PASS: boot 3 -smp 2: hi and return to shell
+PASS: boot 3 -smp 2: complete concurrent workload and shell recovery
+PASS: all Lab4 SMP checks (3 boots, 2 harts)
