@@ -15,6 +15,7 @@
 #endif
 
 static struct {
+  struct spinlock lock;
   uint8 buf[LAB2_BUF_SIZE];
   uint64 r; // next byte to consume
   uint64 w; // end of committed (readable) bytes
@@ -22,33 +23,15 @@ static struct {
   uint64 dropped;
 } input;
 
-// Single-hart critical sections: preserve the caller's interrupt state.
-static int
-input_lock(void)
-{
-  int enabled = intr_get();
-  intr_off();
-  asm volatile("" ::: "memory");
-  return enabled;
-}
-
-static void
-input_unlock(int enabled)
-{
-  asm volatile("" ::: "memory");
-  if (enabled)
-    intr_on();
-}
-
 void
 console_input(int c)
 {
   if (c < 0 || c > 255)
     return;
-  int enabled = input_lock();
+  acquire(&input.lock);
   if (input.e - input.r == LAB2_BUF_SIZE) {
     input.dropped++;
-    input_unlock(enabled);
+    release(&input.lock);
     return; // keep existing data; neither store nor echo a dropped byte
   }
   input.buf[input.e % LAB2_BUF_SIZE] = (uint8)c;
@@ -61,19 +44,20 @@ console_input(int c)
     input.w = input.e;
 #endif
   uartputc_sync(c);
-  input_unlock(enabled);
+  wakeup(&input.r);
+  release(&input.lock);
 }
 
 int
 console_getc(void)
 {
-  int enabled = input_lock();
+  acquire(&input.lock);
   int c = -1;
   if (input.r != input.w) {
     c = input.buf[input.r % LAB2_BUF_SIZE];
     input.r++;
   }
-  input_unlock(enabled);
+  release(&input.lock);
   return c;
 }
 
@@ -85,25 +69,20 @@ console_read(uint64 *pagetable, uint64 destination, uint64 length)
     return -1;
   if (length == 0)
     return 0;
-  int enabled = intr_get();
-  intr_off();
+  acquire(&input.lock);
   uint64 done = 0;
   while (done < length) {
-    int c = console_getc();
-    if (c < 0) {
+    if (input.r == input.w) {
       if (done)
         break; // Return available bytes instead of waiting to fill the request.
-      proc_yield(1); // No bytes consumed: restart read on the next turn.
-      // UART interrupts produce input. Do not wait with SIE disabled.
-      // Busy waiting avoids a check-then-wfi race before a scheduler exists.
-      intr_on();
-      asm volatile("nop" ::: "memory");
-      intr_off();
+      if (proc_killed()) { release(&input.lock); return -1; }
+      sleep(&input.r, &input.lock);
       continue;
     }
+    int c = input.buf[input.r++ % LAB2_BUF_SIZE];
     uint8 byte = (uint8)c;
     if (user_copyout(pagetable, destination + done, &byte, 1) < 0) {
-      input_unlock(enabled);
+      release(&input.lock);
       return -1; // Current single-task mappings cannot change during the copy.
     }
     done++;
@@ -112,7 +91,7 @@ console_read(uint64 *pagetable, uint64 destination, uint64 length)
       break;
 #endif
   }
-  input_unlock(enabled);
+  release(&input.lock);
   return (int)done;
 }
 
@@ -135,6 +114,7 @@ static volatile uint64 uart_irq_count;
 void
 uart_init(void)
 {
+  initlock(&input.lock, "console");
   // Clear DLAB before disabling interrupts: offset 1 must mean IER.
   *UART_REG(UART_LCR) = 3;
   *UART_REG(UART_IER) = 0;

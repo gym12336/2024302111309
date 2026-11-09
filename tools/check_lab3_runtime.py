@@ -8,10 +8,10 @@ import subprocess
 import time
 
 
-def main():
+def main(evidence_dir='labs/lab3/evidence', serial_name='runtime-serial.txt'):
     root = pathlib.Path(__file__).resolve().parents[1]
     os.chdir(root)
-    evidence = root / 'labs/lab3/evidence'
+    evidence = root / evidence_dir
     evidence.mkdir(exist_ok=True)
     process = subprocess.Popen(['qemu-system-riscv64', '-machine', 'virt',
                                '-bios', 'none', '-kernel', 'kernel/kernel',
@@ -74,7 +74,7 @@ def main():
     finally:
         process.kill()
         process.wait()
-        (evidence/'runtime-serial.txt').write_bytes(output)
+        (evidence/serial_name).write_bytes(output)
         selector.close()
 
 

@@ -9,6 +9,7 @@ OBJS = kernel/entry.o kernel/start.o kernel/console.o kernel/printf.o kernel/mai
        kernel/userimg.o kernel/trampoline_link.o kernel/boot_vm.o kernel/trap.o \
        kernel/kernel_trap_entry.o kernel/user_boot.o kernel/user_probe.o \
        kernel/kalloc.o kernel/vm_printf.o kernel/vm.o kernel/proc.o kernel/syscall.o kernel/user_mem.o kernel/plic.o
+OBJS += kernel/swtch.o kernel/spinlock.o
 
 kernel/kernel: $(OBJS) kernel/kernel.ld
 	$(LD) -T kernel/kernel.ld -o $@ $(OBJS)
@@ -81,3 +82,12 @@ user-flat/pagedump.bin: kernel/vm_debug.h
 kernel/console.o: kernel/proc.h
 
 $(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py
+
+# Lab4 additions; keep the course qemu/clean recipes and supplied rules intact.
+UPROGS += bench lottery_test stride_test
+UPROGS += alt priority_test schedcheck
+UFLAGS += -DSID=2024302111309UL
+$(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py user/common.h user/common.c user-flat/user-lab3.ld
+$(addprefix user-flat/,$(UPROGS:=.bin)): LD = python3 tools/link_user.py
+kernel/userimg.S kernel/user_meta.h: $(addprefix user-flat/,$(UPROGS:=.bin))
+kernel/proc.o kernel/trap.o kernel/console.o kernel/main.o kernel/syscall.o kernel/spinlock.o kernel/user_boot.o: kernel/proc.h kernel/spinlock.h

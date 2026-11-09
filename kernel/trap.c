@@ -87,6 +87,7 @@ kerneltrap(void)
     kernel_softirq_count++;
   } else if (cause == ((1UL << 63) | 5)) {
     w_stimecmp(r_time() + 100000);
+    proc_clock();
   } else if (cause == ((1UL << 63) | 9)) {
     external_interrupt();
   } else {
@@ -100,7 +101,7 @@ kerneltrap(void)
 static void
 handle_user_trap(void)
 {
-  struct trapframe *tf = (struct trapframe *)TRAPFRAME;
+  struct trapframe *tf = myproc()->frame;
   if (r_sstatus() & SSTATUS_SPP)
     stop_trap("usertrap called from supervisor mode");
 
@@ -111,22 +112,26 @@ handle_user_trap(void)
   if (cause == 8) {
     // ecall is always 32 bits, even when compressed instructions are enabled.
     tf->epc += 4;
+    if (proc_killed()) proc_exit(-1);
+    intr_on(); // Blocking system calls need device/timer interrupts to progress.
     tf->a0 = syscall_dispatch(tf);
   } else if (cause == ((1UL << 63) | 5)) {
     w_stimecmp(r_time() + 100000);
-    proc_yield(0);
+    proc_clock();
+    proc_user_tick();
   } else if (cause == ((1UL << 63) | 9)) {
     external_interrupt(); // preserve epc and every user register
   } else {
     printf("user fault pid=%lu scause=%lu va=0x%lx\n", myproc()->pid, cause, r_stval());
     proc_exit(-1);
   }
+  if (proc_killed()) proc_exit(-1);
 }
 
 static void
 prepare_return(void)
 {
-  struct trapframe *tf = (struct trapframe *)TRAPFRAME;
+  struct trapframe *tf = myproc()->frame;
   // No interrupt may enter uservec while we still hold kernel registers.
   intr_off();
   tf->kernel_satp = r_satp();
@@ -157,7 +162,6 @@ void
 usertrap(void)
 {
   w_stvec((uint64)kernel_trap_entry);
-  proc_reap_deferred();
   handle_user_trap();
   usertrapret(myproc()->pagetable ? MAKE_SATP(myproc()->pagetable) : active_user_satp);
 }

@@ -16,7 +16,7 @@ def build(folder, status=7):
                     "-c", "kernel/user_probe.S", "-o", str(probe)], check=True)
     objects = ["entry", "start", "console", "printf", "userimg", "trampoline_link",
                "boot_vm", "trap", "kernel_trap_entry", "user_boot", "proc", "syscall",
-               "user_mem", "plic", "kalloc", "vm", "vm_printf"]
+               "user_mem", "plic", "kalloc", "vm", "vm_printf", "swtch", "spinlock"]
     kernel = folder / "probe.elf"
     subprocess.run(["riscv64-unknown-elf-ld", "-T", "kernel/kernel.ld", "-o", str(kernel),
                     *[f"kernel/{name}.o" for name in objects], str(main), str(probe)], check=True)

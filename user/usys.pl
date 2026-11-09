@@ -43,3 +43,7 @@ entry("sbrk");
 entry("pause");
 entry("uptime");
 entry("sync");
+entry("schedstat");
+entry("time_rdtime");
+entry("setickets");
+entry("setpriority");

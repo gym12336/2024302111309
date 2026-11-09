@@ -13,6 +13,7 @@ void
 main(void)
 {
   boot_vm_init();
+  proc_boot_init();
   trap_init();
   uart_init();
   plic_init();

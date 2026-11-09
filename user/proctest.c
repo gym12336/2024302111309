@@ -1,4 +1,5 @@
 #include "kernel/types.h"
+#include "kernel/param.h"
 #include "user/user.h"
 
 static volatile int value = 17;
@@ -31,19 +32,27 @@ int main(void)
       printf("PROCTEST FAIL reuse/status\n"); exit(1);
     }
   }
-  int ids[2];
-  for (int i = 0; i < 2; i++) {
+  // The shell and this test own two slots. Zombies retain the remaining
+  // slots until wait reaps them; NPROC replaces Lab2's fixed four-slot limit.
+  int ids[NPROC], seen[NPROC];
+  for (int i = 0; i < NPROC - 2; i++) {
     int id = fork();
     if (id < 0) { printf("PROCTEST FAIL capacity\n"); exit(1); }
     if (id == 0) exit(20 + i);
     ids[i] = id;
+    seen[i] = 0;
   }
   if (fork() != -1) { printf("PROCTEST FAIL full\n"); exit(1); }
-  for (int i = 0; i < 2; i++) {
-    if (wait(&status) != ids[i] || status != 20 + i) {
+  for (int i = 0; i < NPROC - 2; i++) {
+    int reaped = wait(&status), match = -1;
+    for (int j = 0; j < NPROC - 2; j++)
+      if (ids[j] == reaped) match = j;
+    if (match < 0 || seen[match] || status != 20 + match) {
       printf("PROCTEST FAIL capacity/status\n"); exit(1);
     }
+    seen[match] = 1;
   }
+  if (wait(0) != -1) { printf("PROCTEST FAIL capacity/reap\n"); exit(1); }
   printf("PROCTEST PASS: fork isolation, signed status, wait errors, exec errors, slot reuse, capacity\n");
   exit(0);
 }

@@ -1,0 +1,37 @@
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
+riscv64-unknown-elf-ld: warning: /tmp/lab2-exit-w61v208z/probe.elf has a LOAD segment with RWX permissions
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(7) records PID=1, state=ZOMBIE(5) and signed status=7
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(0) records PID=1, state=ZOMBIE(5) and signed status=0
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: 14 hardware U-mode ecalls in the expected order; no unexpected exceptions
+PASS: stdout stack buffer and stderr code buffer each write 3 bytes: Hi\nOK\n
+PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output
+PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1
+PASS: all 31 original register snapshots match; final frame contains the exit request
+PASS: exit(-3) records PID=1, state=ZOMBIE(5) and signed status=-3
+PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec
+PASS: hardware sepc=0x119c; frame epc=0x11a0 is not used to return
+PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U
+PASS: Lab1 prefix matches all 446 bytes; user output matches all 6 raw bytes
+TRACE: user ecall addresses=0x1000, 0x1084, 0x1098, 0x10a4, 0x10b4, 0x10d8, 0x10f0, 0x1104, 0x111c, 0x1134, 0x1148, 0x115c, 0x1178, 0x119c
+PASS: exit statuses 7, 0 and -3 all terminate; formal kernel was not replaced

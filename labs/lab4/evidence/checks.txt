@@ -1,0 +1,25 @@
+$ make
+make: 'kernel/kernel' is up to date.
+
+exit=0
+PASS: single-hart boot and Lab1 banner
+PASS: hi and return to shell
+PASS: badaccess and return to shell
+PASS: pagedump and return to shell
+PASS: bench and return to shell
+PASS: alt and return to shell
+PASS: schedcheck and return to shell
+PASS: priority_test and return to shell
+PASS: all Lab4 serial checks
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script labs/lab4/uart-regression.txt --log labs/lab4/evidence/uart-regression.txt
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'hi: user program running, pid=2': PASS
+EXPECT 'TEST-1 PASS: unknown syscalls all return -1': PASS
+EXPECT 'BUFSTORM lines=4 bytes=4': PASS
+EXPECT 'PROCTEST PASS:.*capacity': PASS
+EXPECT 'hi: user program running, pid=[0-9]+': PASS
+log → labs/lab4/evidence/uart-regression.txt;EXPECT 失败 0 条
+
+exit=0
+PASS: all Lab4 acceptance checks

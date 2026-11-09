@@ -22,3 +22,10 @@ labs/lab2/evidence/phase4-shell.txt -text -whitespace
 /tools/export_lab2_demo.py export-ignore
 /labs/lab3/evidence/step* export-ignore
 /labs/lab3/lab3-v2-20260929.zip -export-ignore
+
+# Lab4 teaching document links to the supplied Lab3 reference.
+/labs/lab3/Lab3完整调用图与操作系统作用讲解.md -export-ignore
+# Preserve raw UART prompts and immutable course support bytes.
+labs/lab4/evidence/*.txt -text -whitespace
+kernel/swtch.S -whitespace
+labs/lab4/gifts/** -whitespace

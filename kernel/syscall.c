@@ -66,6 +66,20 @@ syscall_dispatch(struct trapframe *tf)
 {
   // Compare the full 64-bit register, so large invalid numbers cannot alias 11.
   switch (tf->a7) {
+  case SYS_pause:
+    return (uint64)(long)proc_pause((int)argraw(tf, 0));
+  case SYS_uptime:
+    return proc_uptime();
+  case SYS_kill:
+    return (uint64)(long)proc_kill((int)argraw(tf, 0));
+  case SYS_schedstat:
+    return (uint64)(long)proc_schedstat((int)argraw(tf, 0), argraw(tf, 1), argraw(tf, 2));
+  case SYS_time_rdtime:
+    return r_time();
+  case SYS_setickets:
+    return (uint64)(long)proc_setickets((int)argraw(tf, 0));
+  case SYS_setpriority:
+    return (uint64)(long)proc_setpriority((int)argraw(tf, 0));
   case SYS_dump_pagetable:
     dump_pagetable(myproc()->pagetable);
     return 0;

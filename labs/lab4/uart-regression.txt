@@ -1,0 +1,22 @@
+# Lab4 regression through the unchanged course UART injector.
+# Stream input: the four separately injected bytes must all reach bufstorm.
+# The capacity test now uses NPROC, so later PIDs are intentionally variable.
+EXPECT sh>
+SEND hi
+EXPECT hi: user program running, pid=2
+SEND badecall
+EXPECT TEST-1 PASS: unknown syscalls all return -1
+SEND bufstorm
+WAIT 200
+SENDRAW a
+WAIT 200
+SENDRAW b
+WAIT 200
+SENDRAW c
+WAIT 200
+SENDRAW d
+EXPECT BUFSTORM lines=4 bytes=4
+SEND proctest
+EXPECT PROCTEST PASS:.*capacity
+SEND hi
+EXPECT hi: user program running, pid=[0-9]+

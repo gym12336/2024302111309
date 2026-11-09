@@ -1,0 +1,9 @@
+PASS: badaccess
+PASS: vmtest
+PASS: proctest
+PASS: memcap
+PASS: memcap
+PASS: hi
+PASS: pagedump
+PASS: spin and sh run concurrently; sh executes hi
+PASS: Lab1 banner, page dump, guards, copies, fork/exec, repeated OOM and shell recovery

@@ -3,9 +3,32 @@
 import pathlib
 import re
 import socket
+import struct
 import subprocess
 import tempfile
 import time
+
+
+def proc_layout(folder):
+    """Ask the target C compiler for the current process ABI, including enum."""
+    fields = ("pid", "pagetable", "state", "exit_status")
+    entries = []
+    for field in fields:
+        entries.extend((f"__builtin_offsetof(struct proc, {field})",
+                        f"sizeof(((struct proc *)0)->{field})"))
+    source = '#include "proc.h"\nconst uint64 layout[] = {' + ",".join(entries) + ',PROC_ZOMBIE};\n'
+    obj, data = folder / "proc-layout.o", folder / "proc-layout.bin"
+    subprocess.run(["riscv64-unknown-elf-gcc", "-Wall", "-Werror", "-ffreestanding",
+                    "-nostdlib", "-march=rv64gc", "-mcmodel=medany", "-Ikernel",
+                    "-x", "c", "-c", "-", "-o", str(obj)], input=source,
+                   text=True, check=True)
+    subprocess.run(["riscv64-unknown-elf-objcopy", "-O", "binary",
+                    "--only-section=.rodata", str(obj), str(data)], check=True)
+    values = struct.unpack("<9Q", data.read_bytes())
+    layout = {field: values[index * 2:index * 2 + 2]
+              for index, field in enumerate(fields)}
+    assert all(size in (1, 2, 4, 8) for offset, size in layout.values()), layout
+    return layout, values[-1]
 
 
 def main(kernel_path=None, exit_status=7):
@@ -20,6 +43,7 @@ def main(kernel_path=None, exit_status=7):
             symbols[parts[2]] = int(parts[0], 16)
     with tempfile.TemporaryDirectory(prefix="lab2-roundtrip-") as folder:
         folder = pathlib.Path(folder)
+        layout, zombie = proc_layout(folder)
         monitor, serial, traps = [folder / name for name in ("monitor.sock", "serial", "traps")]
         process = subprocess.Popen([
             "qemu-system-riscv64", "-machine", "virt", "-bios", "none",
@@ -64,12 +88,20 @@ def main(kernel_path=None, exit_status=7):
                         raise RuntimeError(f"could not read {count} physical words")
                     return values
 
+                def proc_field(field):
+                    offset, size = layout[field]
+                    value = memory(symbols["boot_process"] + offset, 1)[0]
+                    value &= (1 << (size * 8)) - 1
+                    if field == "exit_status" and value & (1 << (size * 8 - 1)):
+                        value -= 1 << (size * 8)
+                    return value
+
                 while True:
                     command("stop")
                     flag = memory(symbols["probe_stack"] + 0xff8, 1)[0]
                     if flag == 0x4641494c:
                         raise RuntimeError("user executed instructions after exit")
-                    if flag == 0x50415353 and memory(symbols["boot_process"] + 16, 1) == [2]:
+                    if flag == 0x50415353 and proc_field("state") == zombie:
                         registers = command("info registers")
                         pc = re.search(r"\bpc\s+([0-9a-fA-F]+)", registers)
                         if pc and symbols["proc_exit_idle"] <= int(pc[1], 16) < symbols["proc_exit_idle_end"]:
@@ -85,7 +117,7 @@ def main(kernel_path=None, exit_status=7):
                 low = memory(symbols["user_low_l0"], 4)
                 high = memory(symbols["user_high_l0"] + 510 * 8, 2)
                 roots = memory(symbols["user_root"], 3)
-                process_record = memory(symbols["boot_process"], 4)
+                process_record = [proc_field(field) for field in layout]
             expected = [0x100 + reg for reg in range(1, 32)]
             expected[1], expected[9], expected[16] = 0x4000, 0xffffffffffffffff, 999
             final_expected = expected.copy()
@@ -111,7 +143,7 @@ def main(kernel_path=None, exit_status=7):
             sp = re.search(r"\bx2/sp\s+([0-9a-fA-F]+)", registers)
             if not sp or not symbols["trap_stack"] <= int(sp[1], 16) < symbols["trap_stack"] + 8192:
                 raise RuntimeError("exit did not keep the kernel trap stack")
-            if process_record != [1, symbols["user_root"], 2, exit_status & ((1 << 64) - 1)]:
+            if process_record != [1, symbols["user_root"], zombie, exit_status]:
                 raise RuntimeError(f"PID/state/exit status mismatch: {process_record!r}")
             def pte(address, flags):
                 return ((address >> 12) << 10) | flags
@@ -141,7 +173,7 @@ def main(kernel_path=None, exit_status=7):
             print("PASS: bad fd/null/supervisor/cross-page/negative count return -1 with no extra output")
             print("PASS: zero-length write returns 0; getpid still returns 1; invalid call numbers return -1")
             print("PASS: all 31 original register snapshots match; final frame contains the exit request")
-            print(f"PASS: exit({exit_status}) records PID=1, state=EXITED and signed status={exit_status}")
+            print(f"PASS: exit({exit_status}) records PID=1, state=ZOMBIE({zombie}) and signed status={exit_status}")
             print("PASS: exit never returns to user; PASS marker preserved; CPU waits on kernel satp/stack/tp/stvec")
             print(f"PASS: hardware sepc=0x{exit_epc:x}; frame epc=0x{final_epc:x} is not used to return")
             print("PASS: user code RX, stack RW; guard pages unmapped; trampoline/frame have no PTE_U")
