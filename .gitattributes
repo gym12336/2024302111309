@@ -32,3 +32,4 @@ labs/lab4/gifts/** -whitespace
 
 labs/lab5/gifts/** -text -whitespace
 labs/lab5/support/** -text -whitespace
+labs/lab5/evidence/** -text -whitespace

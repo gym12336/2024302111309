@@ -1,5 +1,7 @@
 #include "vm_ops.h"
 #include "kalloc.h"
+#include "proc.h"
+#include "course_sid.h"
 extern void vmprintf(const char *, ...);
 
 pte_t *walk(pagetable_t table, uint64 va, int alloc)
@@ -91,6 +93,53 @@ void vmfree(pagetable_t table, int payload)
     else if (payload && (p & PTE_U)) kfree((void *)PTE2PA(p));
   }
   kfree(table);
+}
+
+int
+uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+{
+  uint64 va;
+  for (va = 0; va < sz; va += PGSIZE) {
+    pte_t *pte = walk(old, va, 0);
+    if (!pte || !(*pte & PTE_V)) continue;
+    uint64 pa = PTE2PA(*pte);
+    uint64 flags = PTE_FLAGS(*pte);
+    if (flags & PTE_W) flags = (flags & ~PTE_W) | PTE_COW;
+    if (mappages(new, va, PGSIZE, pa, flags) < 0) {
+      uvmunmap(new, 0, va / PGSIZE, 1);
+      return -1;
+    }
+    kref_inc(pa);
+  }
+
+  // The child is still private. Protect the parent only after all child
+  // mappings succeed, so a failed fork leaves the parent's flags intact.
+  for (va = 0; va < sz; va += PGSIZE) {
+    pte_t *pte = walk(old, va, 0);
+    if (pte && (*pte & (PTE_V | PTE_W)) == (PTE_V | PTE_W))
+      *pte = (*pte & ~PTE_W) | PTE_COW;
+  }
+  sfence_vma();
+  return 0;
+}
+
+int
+cow_alloc(pagetable_t table, uint64 va)
+{
+  if (va >= MAXVA) return -1;
+  pte_t *pte = walk(table, PGROUNDDOWN(va), 0);
+  uint64 required = PTE_V | PTE_U | PTE_R;
+  if (!pte || (*pte & required) != required) return -1;
+  if (*pte & PTE_W) return 0;
+  if (!(*pte & PTE_COW)) return -1;
+  int result = kcow_split(pte);
+  if (result > 0) {
+    struct proc *p = myproc();
+    if (p->pagetable == table && ++p->cow_copies == LAB5_COW_BUDGET)
+      vmprintf("COW budget reached: pid=%lu copies=%lu; continuing\n",
+               p->pid, p->cow_copies);
+  }
+  return result < 0 ? -1 : 0;
 }
 
 static void dump_level(pagetable_t table, int level, uint64 base)

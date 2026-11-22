@@ -4,8 +4,10 @@
 #include "uart.h"
 #include "plic.h"
 #include "proc.h"
+#include "kalloc.h"
 
 extern void printf(const char *format, ...);
+extern void vmprintf(const char *format, ...);
 extern void boot_vm_init(void);
 extern void boot_vm_hart_init(void);
 extern void user_probe_launch(void) __attribute__((noreturn));
@@ -42,6 +44,9 @@ main(void)
   printf("SELFTEST long=%s\n",
          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+
+  if (kref_selftest() < 0) panic("kref selftest");
+  vmprintf("LAB5 kref_selftest PASS\n");
 
 #ifdef LAB2_BOOT_PROBE
   intr_on();

@@ -1,0 +1,65 @@
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.LAB5 kref_selftest PASS
+
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> zerocopy
+hi: user program running, pid=3
+T5-1 copies: 0 -> 1 (delta 1)
+T5-1 PASS: fork-immediately-exec ~zero copy
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> echo hi
+hi
+T5-3 PASS: argc=2 argv[0]=echo aligned
+sh> cowtest
+COWTEST PASS: 6 alternating rounds, exact copies and kernel copyout
+COWTEST PASS: 8 concurrent writers, shared pages returned to zero
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.2.3. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.0.
+.COWTEST PASS: write to read-only text killed the child
+COW budget reached: pid=24 copies=205; continuing
+COWTEST PASS: budget 205, 213 heap pages written, 214 copies
+COWTEST PASS: exec argv alignment, strings and invalid pointers
+COWTEST PASS: all five checks
+sh> bench
+RESULT avg_fork_wait = 2113
+RESULT concurrent_children = 8
+PASS: bench
+sh> badaccess
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.1.3.6. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.0.
+.TEST-3a PASS: wild write killed (status=-1)
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.1.3.7. .s.c.a.u.s.e.=.1.3. .v.a.=.0.x.8.0.0.0.
+.TEST-3b PASS: beyond-sbrk access killed (status=-1)
+sh> vmtest
+CROSS-PAGE PASS
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.1.3.9. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.3.0.0.0.
+.GUARD PASS
+SHRINK PASS
+EXEC-FAIL PASS
+OOM-FORK-EXEC PASS
+UNALIGNED-SBRK PASS
+sh> memcap
+TEST-4 PASS: OOM returned error after 2032 chunks; existing alloc intact; kernel alive
+sh> memcap
+TEST-4 PASS: OOM returned error after 2032 chunks; existing alloc intact; kernel alive
+sh> priority_test
+RESULT priority_cpu = 50:14
+RESULT aging_two_cpu_ticks_elapsed = 11 ticks
+RESULT equal_priority_cpu = 22:22
+PASS: priority ID9
+sh> hi
+hi: user program running, pid=149
+sh> 

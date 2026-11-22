@@ -17,8 +17,16 @@ int kinit(void);
 int kalloc_get_stats(struct kalloc_stats *out);
 
 // kalloc: return one zeroed page, or 0 on exhaustion/uninitialized allocator.
-// kfree: accept only an aligned, currently allocated managed page; else -1.
+// kfree: release one reference; reject an invalid address and panic on underflow.
 void *kalloc(void);
 int kfree(void *page);
+void kref_inc(uint64 pa);
+uint16 kref_get(uint64 pa);
+uint64 kshared_count(void);
+uint64 kcow_copy_count(void);
+int kref_selftest(void);
+
+// Resolve a validated COW PTE. Return 1 for a copy, 0 for reuse, -1 on OOM.
+int kcow_split(uint64 *pte);
 
 #endif

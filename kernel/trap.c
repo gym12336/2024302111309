@@ -6,6 +6,8 @@
 #include "uart.h"
 #include "plic.h"
 #include "proc.h"
+#include "course_sid.h"
+#include "vm_ops.h"
 
 extern void printf(const char *format, ...);
 extern char trampoline[], uservec[], userret[], kernel_trap_entry[];
@@ -115,6 +117,13 @@ handle_user_trap(void)
     if (proc_killed()) proc_exit(-1);
     intr_on(); // Blocking system calls need device/timer interrupts to progress.
     tf->a0 = syscall_dispatch(tf);
+  } else if (cause == 15) {
+    if (LAB5_KILL_SEMANTICS == 0 && proc_killed()) proc_exit(-1);
+    if (cow_alloc(myproc()->pagetable, r_stval()) < 0) {
+      printf("user fault pid=%lu scause=%lu va=0x%lx\n", myproc()->pid, cause, r_stval());
+      proc_exit(-1);
+    }
+    // A resolved store fault retries the same instruction on return.
   } else if (cause == ((1UL << 63) | 5)) {
     w_stimecmp(r_time() + 100000);
     proc_clock();

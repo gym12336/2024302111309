@@ -37,6 +37,7 @@ struct proc {
   struct context context;
   uint64 *pagetable;
   uint64 sz, heap_base, guard, kernel_stack, image_size;
+  uint64 cow_copies;
   struct trapframe *frame;
   int cpu_ticks, last_slice_ticks, tickets;
   int base_priority, priority, ready_ticks;
@@ -64,7 +65,7 @@ int proc_setickets(int);
 int proc_setpriority(int);
 int proc_fork(void);
 uint64 proc_sbrk(int);
-int proc_exec(uint64);
+int proc_exec(uint64, uint64);
 int proc_wait(uint64);
 
 #endif

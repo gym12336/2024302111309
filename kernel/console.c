@@ -65,7 +65,7 @@ console_getc(void)
 int
 console_read(uint64 *pagetable, uint64 destination, uint64 length)
 {
-  // Reject the entire destination before consuming any queued input.
+  // Validate the entire destination and resolve COW before consuming input.
   if (!user_writable(pagetable, destination, length))
     return -1;
   if (length == 0)
@@ -84,7 +84,7 @@ console_read(uint64 *pagetable, uint64 destination, uint64 length)
     uint8 byte = (uint8)c;
     if (user_copyout(pagetable, destination + done, &byte, 1) < 0) {
       release(&input.lock);
-      return -1; // Each process alone owns the writable user mapping.
+      return -1;
     }
     done++;
 #if LAB2_BUF_SEMANTICS == 0

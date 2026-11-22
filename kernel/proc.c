@@ -133,7 +133,54 @@ static int add_page(pagetable_t table, uint64 va, int flags)
   return 0;
 }
 
-static int load_image(struct proc *p, const char *name)
+// Return the number of bytes consumed, including the terminating NUL.
+static int copy_exec_string(pagetable_t table, uint64 address, char *out, int capacity)
+{
+  if (!address || address >= MAXVA) return -1;
+  for (int i = 0; i < capacity; i++) {
+    if (user_copyin(table, out+i, address+i, 1) < 0) return -1;
+    if (!out[i]) return i+1;
+  }
+  return -1;
+}
+
+static int push_exec_args(pagetable_t old, pagetable_t table, uint64 argv_address,
+                          uint64 stack_bottom, uint64 *stack_pointer)
+{
+  uint64 ustack[MAXARG+1], sp = *stack_pointer;
+  int argc = 0;
+  char *buffer = 0;
+  if (argv_address) {
+    if (argv_address >= MAXVA || !(buffer = kalloc())) return -1;
+    for (;;) {
+      uint64 argument;
+      if (user_copyin(old, &argument, argv_address+argc*sizeof(argument), sizeof(argument)) < 0)
+        goto bad;
+      if (!argument) break;
+      if (argc == MAXARG) goto bad;
+      int length = copy_exec_string(old, argument, buffer, PGSIZE);
+      if (length < 0 || (uint64)length > sp-stack_bottom) goto bad;
+      sp = (sp-length) & ~15UL;
+      if (user_copyout(table, sp, buffer, length) < 0) goto bad;
+      ustack[argc++] = sp;
+    }
+    kfree(buffer);
+  }
+
+  ustack[argc] = 0;
+  uint64 size = (argc+1)*sizeof(ustack[0]);
+  if (size > sp-stack_bottom) return -1;
+  sp = (sp-size) & ~15UL;
+  if (user_copyout(table, sp, ustack, size) < 0) return -1;
+  *stack_pointer = sp;
+  return argc;
+
+bad:
+  kfree(buffer);
+  return -1;
+}
+
+static int load_image(struct proc *p, const char *name, uint64 argv_address)
 {
   uint64 start, size;
   const struct image_meta *meta = find_image(name, &start, &size);
@@ -143,11 +190,13 @@ static int load_image(struct proc *p, const char *name)
     return -1;
   pagetable_t table = new_table(p);
   if (!table) return -1;
-  uint64 guard = PGROUNDUP(meta->memory), top = guard+(LAB3_GUARD_PAGES+2)*PGSIZE;
+  uint64 guard = PGROUNDUP(meta->memory);
+  uint64 stack_bottom = guard+LAB3_GUARD_PAGES*PGSIZE;
+  uint64 top = stack_bottom+2*PGSIZE;
   for (uint64 va = 0; va < top; va += PGSIZE) {
-    if (va >= guard && va < guard+LAB3_GUARD_PAGES*PGSIZE) continue;
+    if (va >= guard && va < stack_bottom) continue;
     int flags = va < meta->data ? PTE_R|PTE_X : PTE_R|PTE_W;
-    if (add_page(table, va, flags) < 0) { vmfree(table, 1); return -1; }
+    if (add_page(table, va, flags) < 0) goto bad;
     if (va < size) {
       uint64 count = size-va;
       if (count > PGSIZE) count = PGSIZE;
@@ -155,15 +204,25 @@ static int load_image(struct proc *p, const char *name)
     }
   }
   pagetable_t old = p->pagetable;
+  uint64 sp = top;
+  int argc = push_exec_args(old, table, argv_address, stack_bottom, &sp);
+  if (argc < 0) goto bad;
+
+  // Keep the old image and its trapframe intact until all arguments fit.
   p->pagetable = table;
   p->image_size = meta->memory;
   p->heap_base = p->sz = top;
   p->guard = guard;
   clear(p->frame, sizeof(*p->frame));
   p->frame->epc = meta->entry;
-  p->frame->sp = top;
+  p->frame->sp = sp;
+  p->frame->a1 = sp;
   vmfree(old, 1);
-  return 0;
+  return argc;
+
+bad:
+  vmfree(table, 1);
+  return -1;
 }
 
 uint64 proc_sbrk(int n)
@@ -335,7 +394,7 @@ void proc_shell_init(void)
 {
   managed = 1;
   struct proc *p = allocate_process();
-  if (!p || load_image(p, "sh") < 0) panic("load sh");
+  if (!p || load_image(p, "sh", 0) < 0) panic("load sh");
   initproc = p;
   dump_pagetable(p->pagetable);
   ready(p);
@@ -360,16 +419,10 @@ int proc_fork(void)
   child->guard = parent->guard;
   child->base_priority = child->priority = parent->base_priority;
   child->tickets = parent->tickets;
-  for (uint64 va = 0; va < parent->sz; va += PGSIZE) {
-    pte_t *pte = walk(parent->pagetable, va, 0);
-    if (!pte || !(*pte & PTE_V)) continue;
-    if (add_page(child->pagetable, va, PTE_FLAGS(*pte)) < 0) {
-      release_process(child);
-      release(&child->lock);
-      return -1;
-    }
-    copy((void *)PTE2PA(*walk(child->pagetable, va, 0)),
-         (void *)PTE2PA(*pte), PGSIZE);
+  if (uvmcopy(parent->pagetable, child->pagetable, parent->sz) < 0) {
+    release_process(child);
+    release(&child->lock);
+    return -1;
   }
   copy(child->frame, parent->frame, sizeof(*child->frame));
   child->frame->a0 = 0;
@@ -384,19 +437,16 @@ int proc_fork(void)
   return pid;
 }
 
-int proc_exec(uint64 name_address)
+int proc_exec(uint64 name_address, uint64 argv_address)
 {
   if (!managed) return -1;
+  struct proc *p = myproc();
   char name[32];
-  uint64 i;
-  for (i = 0; i < sizeof(name); i++) {
-    if (name_address >= MAXVA || i >= MAXVA - name_address ||
-        user_copyin(myproc()->pagetable, &name[i], name_address + i, 1) < 0) return -1;
-    if (!name[i]) break;
-  }
-  if (i == sizeof(name)) return -1;
-  while (i && (name[i-1] == '\n' || name[i-1] == '\r' || name[i-1] == ' ')) name[--i] = 0;
-  return i ? load_image(myproc(), name) : -1;
+  int length = copy_exec_string(p->pagetable, name_address, name, sizeof(name));
+  if (length < 0) return -1;
+  int end = length-1;
+  while (end && (name[end-1] == '\n' || name[end-1] == '\r' || name[end-1] == ' ')) name[--end] = 0;
+  return end ? load_image(p, name, argv_address) : -1;
 }
 
 int proc_wait(uint64 status_address)

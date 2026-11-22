@@ -5,6 +5,7 @@
 #include "console.h"
 #include "vm_ops.h"
 #include "vm_debug.h"
+#include "kalloc.h"
 
 extern void uartputc_sync(int c);
 
@@ -61,6 +62,15 @@ sys_getpid(void)
   return myproc()->pid;
 }
 
+static uint64
+sys_pmc(struct trapframe *tf)
+{
+  int which = (int)argraw(tf, 0);
+  if (which == 0) return kcow_copy_count();
+  if (which == 1) return kshared_count();
+  return (uint64)-1;
+}
+
 uint64
 syscall_dispatch(struct trapframe *tf)
 {
@@ -78,6 +88,8 @@ syscall_dispatch(struct trapframe *tf)
     return r_time();
   case SYS_setickets:
     return (uint64)(long)proc_setickets((int)argraw(tf, 0));
+  case SYS_pmc:
+    return sys_pmc(tf);
   case SYS_setpriority:
     return (uint64)(long)proc_setpriority((int)argraw(tf, 0));
   case SYS_smpstat:
@@ -96,8 +108,7 @@ syscall_dispatch(struct trapframe *tf)
   case SYS_fork:
     return (uint64)(long)proc_fork();
   case SYS_exec:
-    // Course sh uses exec(name, argv); argv is intentionally unused in lab2.
-    return (uint64)(long)proc_exec(argraw(tf, 0));
+    return (uint64)(long)proc_exec(argraw(tf, 0), argraw(tf, 1));
   case SYS_wait:
     return (uint64)(long)proc_wait(argraw(tf, 0));
   case SYS_exit:

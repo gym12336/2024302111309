@@ -1,0 +1,38 @@
+PASS: 1 CPU boot, reference-count self-test and shell
+PASS: 1 CPU zerocopy, 1 page copies
+PASS: 1 CPU cowpair, exactly 2 copies in each of 1 runs
+PASS: 1 CPU echo hi, aligned argv and NULL sentinel
+PASS: 1 CPU cowtest, all five checks and one budget warning at 205 copies
+PASS: bench regression and shell recovery
+PASS: badaccess regression and shell recovery
+PASS: vmtest regression and shell recovery
+PASS: memcap regression reached 2032 chunks on both runs
+PASS: Lab4 setpriority regression and shell recovery
+PASS: 2 CPU boot, reference-count self-test and shell
+PASS: 2 CPU zerocopy, 1 page copies
+PASS: 2 CPU cowpair, exactly 2 copies in each of 5 runs
+PASS: 2 CPU echo hi, aligned argv and NULL sentinel
+PASS: 2 CPU cowtest, all five checks and one budget warning at 205 copies
+PASS: 2 CPU smptest, online=3; hart0 dispatches=181 user_ticks=108, hart1 dispatches=120 user_ticks=105; clock=123ticks/12438818cycles; reclaimed=32586
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script labs/lab4/uart-regression.txt --log '/mnt/d/UserFolders/Desktop/osshijian/2024302111309高一鸣/labs/lab5/evidence/uart-stream.txt'
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'hi: user program running, pid=2': PASS
+EXPECT 'TEST-1 PASS: unknown syscalls all return -1': PASS
+EXPECT 'BUFSTORM lines=4 bytes=4': PASS
+EXPECT 'PROCTEST PASS:.*capacity': PASS
+EXPECT 'hi: user program running, pid=[0-9]+': PASS
+log → /mnt/d/UserFolders/Desktop/osshijian/2024302111309高一鸣/labs/lab5/evidence/uart-stream.txt;EXPECT 失败 0 条
+
+exit=0
+PASS: Lab2 UART stream
+$ /usr/bin/python3 tools/run_course_inject.py --tree . --script support/lab2-long-storm.txt --log '/mnt/d/UserFolders/Desktop/osshijian/2024302111309高一鸣/labs/lab5/evidence/uart-long-storm.txt'
+boot ok
+EXPECT 'sh>': PASS
+EXPECT 'BUFSTORM lines=4 bytes=[1-9][0-9]*': PASS
+EXPECT 'hi: user program running, pid=[0-9]+': PASS
+log → /mnt/d/UserFolders/Desktop/osshijian/2024302111309高一鸣/labs/lab5/evidence/uart-long-storm.txt;EXPECT 失败 0 条
+
+exit=0
+PASS: Lab2 UART long-storm
+PASS: all Lab5 acceptance checks and regressions

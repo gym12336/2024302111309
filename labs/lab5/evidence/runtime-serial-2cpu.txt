@@ -1,0 +1,85 @@
+O.S.L.A.B.1. .s.i.d.=.2.0.2.4.3.0.2.1.1.1.3.0.9. .m.o.d.9.7.=.0.x.2.
+.S.E.L.F.T.E.S.T. .z.e.r.o.=.0. .n.e.g.=.-.1.2.3. .m.a.x.=.2.1.4.7.4.8.3.6.4.7. .e.m.p.t.y.=.[.].
+.S.E.L.F.T.E.S.T. .l.o.n.g.=.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z.0.1.2.3.4.5.6.7.8.9.
+.LAB5 kref_selftest PASS
+
+DUMP-PAGETABLE begin
+L2 va=0x0 pa=0x87fa4000 perm=----
+L1 va=0x0 pa=0x87fa3000 perm=----
+LEAF va=0x0 pa=0x87fa5000 perm=r-xu
+LEAF va=0x1000 pa=0x87fa2000 perm=rw-u
+LEAF va=0x4000 pa=0x87fa1000 perm=rw-u
+LEAF va=0x5000 pa=0x87fa0000 perm=rw-u
+L2 va=0x3fc0000000 pa=0x87fa7000 perm=----
+L1 va=0x3fffe00000 pa=0x87fa6000 perm=----
+LEAF va=0x3fffffe000 pa=0x87fad000 perm=rw--
+LEAF va=0x3ffffff000 pa=0x80004000 perm=r-x-
+DUMP-PAGETABLE end
+sh> zerocopy
+hi: user program running, pid=3
+T5-1 copies: 0 -> 1 (delta 1)
+T5-1 PASS: fork-immediately-exec ~zero copy
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> cowpair
+T5-2 copies delta = 2 (expect 2)
+T5-2 PASS: pair-write exact 2 copies, data isolated
+sh> echo hi
+hi
+T5-3 PASS: argc=2 argv[0]=echo aligned
+sh> cowtest
+COWTEST PASS: 6 alternating rounds, exact copies and kernel copyout
+COWTEST PASS: 8 concurrent writers, shared pages returned to zero
+u.s.e.r. .f.a.u.l.t. .p.i.d.=.3.1. .s.c.a.u.s.e.=.1.5. .v.a.=.0.x.0.
+.COWTEST PASS: write to read-only text killed the child
+COW budget reached: pid=32 copies=205; continuing
+COWTEST PASS: budget 205, 213 heap pages written, 214 copies
+COWTEST PASS: exec argv alignment, strings and invalid pointers
+COWTEST PASS: all five checks
+sh> smptest
+hi: user program running, pid=51
+hi: user program running, pid=52
+hi: user program ruhnin:i nugs,er  ppriodg=ram runni5ng3, p
+id=54
+hi: user programh riu:n nuisnegr,  ppidr=ogra5m 5ru
+nning, pid=56
+hi: user program runnihng,i :p uisde=r pr5og7r
+am running, pid=58
+RESULT smp_round = 1 workers=8 free_pages=32580
+hi: user program running, pid=75
+hi: user program running, pid=76
+hi: user program running, pid=77
+hi: user program running,h pii:d us=er program 7run8ni
+ng, pid=79
+hi: user phroig:r user parmo grraumn nriunngn,in gp,i dp=id=80
+81
+hi: user program running, pid=82
+RESULT smp_round = 2 workers=8 free_pages=32580
+hhi:i u:se rus epr rprooggrraam mr rununninnign,g ,p ipidd==100
+99
+hi:h uis:er  upsreorg rparmo grunrnaimn gr,u npniid=ng,1 0p1id
+=102
+hi: user program running, pid=103
+hi: user program running, pid=104
+hi: user program running, pid=105
+hi: user program running, pid=106
+RESULT smp_round = 3 workers=8 free_pages=32580
+RESULT smp_hart = 0 dispatches=181 user_ticks=108
+RESULT smp_hart = 1 dispatches=120 user_ticks=105
+RESULT smp_clock = ticks=123 cycles=12438818
+RESULT smp_online = 3 reclaimed=32586
+RESULT smp_stress = fork,exec,exit,wait,pause,sbrk,isolation,kill
+PASS: smptest
+sh> hi
+hi: user program running, pid=108
+sh> 

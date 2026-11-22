@@ -100,8 +100,13 @@ user-flat/smptest.bin: kernel/smp_stats.h kernel/param.h
 
 # Lab5 course tests.
 UPROGS += zerocopy cowpair echo
-$(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py user/common.h user/common.c user-flat/user-lab3.ld
+UPROGS += cowtest
+$(addprefix user-flat/,$(UPROGS:=.bin)): Makefile tools/link_user.py user/common.h user/common.c user-flat/user-lab3.ld kernel/syscall.h
 $(addprefix user-flat/,$(UPROGS:=.bin)): LD = python3 tools/link_user.py
 kernel/userimg.S kernel/user_meta.h: $(addprefix user-flat/,$(UPROGS:=.bin))
 # The supplied cowpair source declares an unused variable.
 user-flat/cowpair.bin: UFLAGS += -Wno-unused-variable
+user-flat/cowtest.bin: kernel/course_sid.h kernel/param.h kernel/smp_stats.h
+kernel/main.o kernel/kalloc.o: kernel/kalloc.h
+kernel/vm.o: kernel/proc.h
+kernel/trap.o kernel/user_mem.o kernel/kalloc.o: kernel/vm_ops.h
