@@ -46,5 +46,7 @@ entry("sync");
 entry("schedstat");
 entry("time_rdtime");
 entry("setickets");
+entry("pmc");
+
 entry("setpriority");
 entry("smpstat");

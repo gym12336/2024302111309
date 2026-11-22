@@ -29,3 +29,6 @@ labs/lab2/evidence/phase4-shell.txt -text -whitespace
 labs/lab4/evidence/** -text -whitespace
 kernel/swtch.S -whitespace
 labs/lab4/gifts/** -whitespace
+
+labs/lab5/gifts/** -text -whitespace
+labs/lab5/support/** -text -whitespace
